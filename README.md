@@ -1,80 +1,107 @@
 # Nova S Pro Drill Control
 
-A pretty web client for the Nova S Pro table tennis robot. 
-This tool can be used as a replacement for the original app, removing the requirements for server connectivity and user login.
+A browser-based controller for the Nova S Pro table tennis robot.
 
-| Main | Editor | Countdown |
-| :---: | :---: | :---: |
-| <img src="./images/main.png" width="300"> | <img src="./images/editor.png" width="300"> | <img src="./images/countdown.png" width="300"> |
+This project is based on the original Nova web client by [olanga](https://github.com/olanga/nova), which provides an alternative to the official application without requiring server connectivity or user login.
 
-## Usage
+This fork adds additional training-session features while retaining the original drill editor, Bluetooth control, drill management, and local browser storage.
 
-**Online/Offline:**
+## Use Online
 
-  * Visit: [https://olanga.github.io/nova/](https://olanga.github.io/nova/)
-  * Self hosting: https is required
+Open the web application:
 
-**Local:**
+https://shimuranmonk.github.io/nova/
 
-  * Download repository files and host locally (e.g., `python3 -m http.server`).
+A Chromium-based browser such as Chrome or Edge is recommended.
 
-**Requirements:**
+Web Bluetooth is required to connect to the Nova S Pro. iPhone/iOS browsers are currently not supported for the robot connection.
 
-  * Chrome, Cromite or any other Chromium-based browser. iPhone is not supported as it uses Webkit browser engine.
+## Basic Use
+
+1. Open the Nova web application.
+2. Select **Connect** and choose the Nova S Pro.
+3. Select a difficulty level.
+4. Choose a session mode:
+   - Reps
+   - Time
+   - Music
+5. Select a drill.
+6. The countdown begins and the robot starts the selected drill.
+
+The starting countdown can also be skipped by tapping it.
+
+## Session Modes
+
+### Reps
+
+Runs the selected drill for the specified number of repetitions.
+
+### Time
+
+Runs the selected drill until the specified time expires.
+
+### Music
+
+Runs the selected drill for the duration of a selected music playlist.
+
+To use Music mode:
+
+1. Select **Music**.
+2. Tap **Choose Music**.
+3. Select one or more MP3, WAV, or other browser-supported audio files.
+4. Select a drill.
+5. Music begins with the countdown.
+6. The robot continues running while the playlist plays.
+7. When the final track ends, the robot stops automatically.
+
+The same selected playlist can be reused for succeeding drills without selecting the files again.
+
+During the session, Nova displays:
+
+- Current track
+- Track number
+- Elapsed playlist time
+- Remaining playlist time
+- Total playlist duration
+
+Pausing the drill also pauses the music. Resuming continues both.
 
 ## Features
 
-**General**
+- Web Bluetooth control of the Nova S Pro
+- Customizable drills and ball sequences
+- Repetition-based sessions
+- Timed sessions
+- Music playlist-based sessions
+- Pause, resume, and stop controls
+- Adjustable pause between drill repetitions
+- Drill randomization
+- Ball scatter control
+- Multiple ball variants
+- Custom drill banks A, B, and C
+- CSV import and export
+- Drill sharing
+- Drag-and-drop drill management
+- Local browser storage
+- Training statistics
+- Multiple themes including dark mode
+- Countdown skip
 
-  * **Fully customizable drills** Add and remove drills and balls. Share, export and import settings.
-  * **Data Persistence:** Settings and drills saved to browser local storage.
-  * **Themes:** 4 options, including dark mode.
-  * **Stratistics:**  accumulated counters (total balls/drills).<br>
+## Drill Editor
 
+Long-press a drill to open the editor.
 
-**Drill Management**
+The editor supports:
 
-  * **Edit & Create:** Modify pre-programmed drills or create custom ones (Groups A, B, C).
-  * **Sharing:** Import/export via CSV or share online specific drills using codes.
-  * **Randomization:** Randomize ball sequences or configure multiple variants of a single ball.
-  * **Scatter:** Randomize drop point (DP) of a single ball. Configured DP +/- scatter value.
-  * **Drag-and-Drop Management:** Easily reorder drill sequences or move drills between categories using drag-and-drop.
-  * **Controls:** Set drill duration (time or repetitions), pause/stop, and countdown timers.
-  * **Tap to skip:** Starting countdown timer can be skipped by tapping on it.<br>
-
-
-**Editor Tools**
-
-  * **Drill Editor:** Long-press drill button to access. Supports deletion, "save as", and testing entire sequences.
-  * **Ball Editor:** Add/remove balls, adjust sequence, rename drills, and test single balls without saving.
-
-## Custom Drills (CSV)
-
-Drills can be imported via CSV. Each category (A, B, C) holds 100 drills; each drill holds 20 balls. Variant balls (pseudo-randomness) share the same ball number.
-
-**CSV Format:** `Set;Ball;Name;Speed;Spin;Type;Height;Drop;BPM;Reps`
-
-**Example:**
-
-```csv
-A;1;Drill A2;7.5;5;top;50;-5;60;1
-A;2;Drill A2;7.5;5;back;50;-5;30;1
-B;1;Drill B1;7.5;5;top;50;-5;60;1
-B;1;Drill B1;7.5;5;back;50;5;60;1
-```
-
-## Technical Parameters
-
-| Parameter | Description | Range | Step |
-| :--- | :--- | :--- | :--- |
-| **Spin type** |top/back | - | - |
-| **Speed** | ball speed | 0 - 10 | 0.5 |
-| **Spin** | ball spin | 0 - 10 | 0.5 |
-| **Height** | Ball height | -50 (down) to 100 (up) | 1 |
-| **Drop** | Drop point | -10 (right) to 10 (left) | 0.5 |
-| **bpm** | balls/minute | 30 - 90 | 1 |
-| **Reps** | Repetitions | 1 - 200 | 1 |
-
+- Adding and removing balls
+- Editing speed, spin, height, drop point, BPM, and repetitions
+- Reordering balls
+- Renaming drills
+- Testing individual balls
+- Testing complete drills
+- Saving modified drills
+- Creating copies using Save As
+- Deleting custom drills
 
 ## Credits & Support
 
