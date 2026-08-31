@@ -1,10 +1,14 @@
 let playlist = [];
 let currentTrackIndex = 0;
-let audio = new Audio();
+
+const audio = new Audio();
 
 let trackObjectUrl = null;
 let playlistEndedCallback = null;
 let trackChangedCallback = null;
+let progressCallback = null;
+
+let progressTimer = null;
 
 audio.preload = 'metadata';
 
@@ -22,17 +26,23 @@ function getAudioDuration(file) {
 
         tempAudio.preload = 'metadata';
 
+        const cleanup = () => {
+            URL.revokeObjectURL(url);
+            tempAudio.removeAttribute('src');
+            tempAudio.load();
+        };
+
         tempAudio.addEventListener('loadedmetadata', () => {
             const duration = Number.isFinite(tempAudio.duration)
                 ? tempAudio.duration
                 : 0;
 
-            URL.revokeObjectURL(url);
+            cleanup();
             resolve(duration);
         }, { once: true });
 
         tempAudio.addEventListener('error', () => {
-            URL.revokeObjectURL(url);
+            cleanup();
             resolve(0);
         }, { once: true });
 
@@ -53,7 +63,8 @@ export async function loadPlaylist(fileList) {
         playlist.push({
             file,
             name: file.name,
-            duration
+            duration,
+            playable: duration > 0
         });
     }
 
@@ -63,13 +74,20 @@ export async function loadPlaylist(fileList) {
 }
 
 function loadCurrentTrack() {
-    if (!playlist.length) return false;
+    if (!playlist.length) {
+        return false;
+    }
 
     revokeCurrentUrl();
 
     const track = playlist[currentTrackIndex];
 
+    if (!track) {
+        return false;
+    }
+
     trackObjectUrl = URL.createObjectURL(track.file);
+
     audio.src = trackObjectUrl;
     audio.load();
 
@@ -80,28 +98,108 @@ function loadCurrentTrack() {
     return true;
 }
 
+function startProgressUpdates() {
+    stopProgressUpdates();
+
+    progressTimer = setInterval(() => {
+        if (progressCallback) {
+            progressCallback(getPlaylistInfo());
+        }
+    }, 500);
+}
+
+function stopProgressUpdates() {
+    if (progressTimer) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+    }
+}
+
+async function advanceToNextPlayableTrack() {
+    while (currentTrackIndex < playlist.length - 1) {
+        currentTrackIndex++;
+
+        const nextTrack = playlist[currentTrackIndex];
+
+        if (!nextTrack || !nextTrack.playable) {
+            continue;
+        }
+
+        if (!loadCurrentTrack()) {
+            continue;
+        }
+
+        try {
+            await audio.play();
+            startProgressUpdates();
+            return true;
+        } catch (error) {
+            console.error(
+                'Unable to play track:',
+                nextTrack.name,
+                error
+            );
+        }
+    }
+
+    stopProgressUpdates();
+
+    if (playlistEndedCallback) {
+        playlistEndedCallback();
+    }
+
+    return false;
+}
+
 export async function playMusic() {
-    if (!playlist.length) return false;
+    if (!playlist.length) {
+        return false;
+    }
+
+    let track = playlist[currentTrackIndex];
+
+    if (!track || !track.playable) {
+        return advanceToNextPlayableTrack();
+    }
 
     if (!audio.src) {
-        if (!loadCurrentTrack()) return false;
+        if (!loadCurrentTrack()) {
+            return false;
+        }
     }
 
     try {
         await audio.play();
+        startProgressUpdates();
+
+        if (progressCallback) {
+            progressCallback(getPlaylistInfo());
+        }
+
         return true;
     } catch (error) {
-        console.error('Unable to play music:', error);
-        return false;
+        console.error(
+            'Unable to play music:',
+            error
+        );
+
+        return advanceToNextPlayableTrack();
     }
 }
 
 export function pauseMusic() {
     audio.pause();
+    stopProgressUpdates();
+
+    if (progressCallback) {
+        progressCallback(getPlaylistInfo());
+    }
 }
 
 export function stopMusic() {
     audio.pause();
+
+    stopProgressUpdates();
 
     try {
         audio.currentTime = 0;
@@ -113,37 +211,77 @@ export function stopMusic() {
     audio.load();
 
     currentTrackIndex = 0;
+
+    if (progressCallback) {
+        progressCallback(getPlaylistInfo());
+    }
 }
 
 export function hasPlaylist() {
-    return playlist.length > 0;
+    return playlist.some(track => track.playable);
 }
 
 export function getPlaylistInfo() {
     const totalDuration = playlist.reduce(
-        (sum, track) => sum + track.duration,
+        (sum, track) => sum + (track.duration || 0),
         0
     );
 
     const completedDuration = playlist
         .slice(0, currentTrackIndex)
-        .reduce((sum, track) => sum + track.duration, 0);
+        .reduce(
+            (sum, track) => sum + (track.duration || 0),
+            0
+        );
 
-    const currentTrack = playlist[currentTrackIndex] || null;
+    const currentTrack =
+        playlist[currentTrackIndex] || null;
+
+    const currentTime =
+        Number.isFinite(audio.currentTime)
+            ? audio.currentTime
+            : 0;
+
+    const elapsed =
+        Math.min(
+            totalDuration,
+            completedDuration + currentTime
+        );
+
+    const remaining =
+        Math.max(
+            0,
+            totalDuration - elapsed
+        );
 
     return {
         trackCount: playlist.length,
+        playableTrackCount:
+            playlist.filter(track => track.playable).length,
+
         currentTrackIndex,
-        currentTrackNumber: playlist.length
-            ? currentTrackIndex + 1
-            : 0,
+
+        currentTrackNumber:
+            playlist.length
+                ? currentTrackIndex + 1
+                : 0,
+
         currentTrack,
+
+        currentTrackTime: currentTime,
+
+        currentTrackDuration:
+            currentTrack
+                ? currentTrack.duration || 0
+                : 0,
+
         totalDuration,
-        elapsed: completedDuration + (audio.currentTime || 0),
-        remaining: Math.max(
-            0,
-            totalDuration - completedDuration - (audio.currentTime || 0)
-        )
+        elapsed,
+        remaining,
+
+        isPlaying:
+            !audio.paused &&
+            !audio.ended
     };
 }
 
@@ -155,22 +293,30 @@ export function onTrackChanged(callback) {
     trackChangedCallback = callback;
 }
 
+export function onProgress(callback) {
+    progressCallback = callback;
+}
+
 audio.addEventListener('ended', async () => {
-    if (currentTrackIndex < playlist.length - 1) {
-        currentTrackIndex++;
+    stopProgressUpdates();
 
-        loadCurrentTrack();
+    await advanceToNextPlayableTrack();
+});
 
-        try {
-            await audio.play();
-        } catch (error) {
-            console.error('Unable to play next track:', error);
-        }
+audio.addEventListener('error', async () => {
+    const failedTrack =
+        playlist[currentTrackIndex];
 
-        return;
+    if (failedTrack) {
+        failedTrack.playable = false;
+
+        console.error(
+            'Skipping unplayable track:',
+            failedTrack.name
+        );
     }
 
-    if (playlistEndedCallback) {
-        playlistEndedCallback();
-    }
+    stopProgressUpdates();
+
+    await advanceToNextPlayableTrack();
 });
