@@ -8,7 +8,9 @@ import {
     stopMusic,
     pauseMusic,
     hasPlaylist,
-    onPlaylistEnded
+    onPlaylistEnded,
+    onTrackChanged,
+    onProgress
 } from './music.js';
 
 let isRunning = false;
@@ -60,7 +62,7 @@ export function startDrillSequence(drillName) {
         return;
     }
 
-    // Music mode requires a playlist before starting
+    // Music mode requires a valid playlist
     if (runMode === 'music' && !hasPlaylist()) {
         showToast("Select music first");
 
@@ -121,11 +123,19 @@ export function startDrillSequence(drillName) {
     // -----------------------------------------
     // MUSIC MODE
     // -----------------------------------------
-    // Start music BEFORE the countdown
+    // Start music before countdown
     if (runMode === 'music') {
 
         onPlaylistEnded(() => {
             stopRun();
+        });
+
+        onTrackChanged((info) => {
+            updateMusicRunDisplay(info);
+        });
+
+        onProgress((info) => {
+            updateMusicRunDisplay(info);
         });
 
         playMusic().then((started) => {
@@ -207,8 +217,7 @@ export function beginDrillExecution() {
     // MUSIC PLAYLIST MODE
     // -----------------------------------------
     else if (runMode === 'music') {
-        ui.label.textContent = "MUSIC";
-        ui.display.textContent = "PLAY";
+        // Live display is handled by music callbacks
     }
 
     // -----------------------------------------
@@ -480,6 +489,119 @@ function formatTime(s) {
     return `${Math.floor(s / 60)}:${(s % 60)
         .toString()
         .padStart(2, '0')}`;
+}
+
+// Format playlist durations
+function formatMusicTime(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) {
+        return "0:00";
+    }
+
+    const totalSeconds =
+        Math.floor(seconds);
+
+    const hours =
+        Math.floor(totalSeconds / 3600);
+
+    const minutes =
+        Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+    const secs =
+        totalSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${minutes
+            .toString()
+            .padStart(2, '0')}:${secs
+            .toString()
+            .padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${secs
+        .toString()
+        .padStart(2, '0')}`;
+}
+
+// Update music session overlay
+function updateMusicRunDisplay(info) {
+    if (!info || runMode !== 'music') {
+        return;
+    }
+
+    const total =
+        Number.isFinite(info.totalDuration)
+            ? info.totalDuration
+            : 0;
+
+    const elapsed =
+        Number.isFinite(info.elapsed)
+            ? info.elapsed
+            : 0;
+
+    const remaining =
+        Number.isFinite(info.remaining)
+            ? info.remaining
+            : 0;
+
+    const trackName =
+        info.currentTrack &&
+        info.currentTrack.name
+            ? info.currentTrack.name
+            : "Music";
+
+    const trackNumber =
+        info.currentTrackNumber || 0;
+
+    const trackCount =
+        info.trackCount || 0;
+
+    ui.label.textContent =
+        `TRACK ${trackNumber} OF ${trackCount}`;
+
+    ui.display.innerHTML = `
+        <div
+            style="
+                font-size:0.42em;
+                line-height:1.25;
+                max-width:220px;
+                overflow:hidden;
+                text-overflow:ellipsis;
+                white-space:nowrap;
+            "
+        >
+            ${trackName}
+        </div>
+
+        <div
+            style="
+                font-size:0.34em;
+                line-height:1.35;
+                margin-top:8px;
+            "
+        >
+            ${formatMusicTime(elapsed)} elapsed<br>
+            ${formatMusicTime(remaining)} remaining<br>
+            ${formatMusicTime(total)} total
+        </div>
+    `;
+
+    const progressFraction =
+        total > 0
+            ? Math.min(
+                1,
+                Math.max(
+                    0,
+                    elapsed / total
+                )
+            )
+            : 0;
+
+    ui.progress.style.transition = 'none';
+
+    ui.progress.style.strokeDashoffset =
+        565 * progressFraction;
 }
 
 function buildPacket(balls) {
