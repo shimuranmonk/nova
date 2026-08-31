@@ -12,7 +12,9 @@ let progressCallback = null;
 
 let progressTimer = null;
 
-audio.preload = 'metadata';
+// Changed this from metadata.
+// We want the first track ready before the drill starts.
+audio.preload = 'auto';
 
 
 function revokeCurrentUrl() {
@@ -41,6 +43,7 @@ function getAudioDuration(file) {
                         : 0;
 
                 URL.revokeObjectURL(url);
+
                 resolve(duration);
             },
             { once: true }
@@ -50,6 +53,7 @@ function getAudioDuration(file) {
             'error',
             () => {
                 URL.revokeObjectURL(url);
+
                 resolve(0);
             },
             { once: true }
@@ -62,13 +66,16 @@ function getAudioDuration(file) {
 
 export async function loadPlaylist(fileList) {
     audio.pause();
+
     stopProgressUpdates();
 
+    // New playlist, so the old object URL is no longer needed.
     revokeCurrentUrl();
 
     audio.removeAttribute('src');
 
-    const files = Array.from(fileList || []);
+    const files =
+        Array.from(fileList || []);
 
     playlist = [];
 
@@ -86,6 +93,20 @@ export async function loadPlaylist(fileList) {
 
     currentTrackIndex = 0;
 
+    // Added this after testing on the phone.
+    // Load the first track now instead of waiting until START.
+    const firstPlayableIndex =
+        playlist.findIndex(
+            track => track.playable
+        );
+
+    if (firstPlayableIndex >= 0) {
+        currentTrackIndex =
+            firstPlayableIndex;
+
+        loadCurrentTrack();
+    }
+
     return getPlaylistInfo();
 }
 
@@ -102,8 +123,7 @@ function loadCurrentTrack() {
         return false;
     }
 
-    // If this exact track is already loaded,
-    // keep using the same audio source.
+    // Don't recreate the Blob URL if this track is already loaded.
     if (
         loadedTrackIndex === currentTrackIndex &&
         trackObjectUrl &&
@@ -118,12 +138,12 @@ function loadCurrentTrack() {
         URL.createObjectURL(track.file);
 
     loadedTrackIndex =
-    currentTrackIndex;
+        currentTrackIndex;
 
-    audio.src = trackObjectUrl;
+    audio.src =
+        trackObjectUrl;
 
-    // Explicitly load the newly assigned local audio file.
-    // Important for reliable Blob URL playback on mobile browsers.
+    // Explicit load seems to behave better with local files on mobile.
     audio.load();
 
     if (trackChangedCallback) {
@@ -153,6 +173,7 @@ function startProgressUpdates() {
 function stopProgressUpdates() {
     if (progressTimer) {
         clearInterval(progressTimer);
+
         progressTimer = null;
     }
 }
@@ -184,6 +205,12 @@ async function advanceToNextPlayableTrack() {
 
             startProgressUpdates();
 
+            if (progressCallback) {
+                progressCallback(
+                    getPlaylistInfo()
+                );
+            }
+
             return true;
 
         } catch (error) {
@@ -193,6 +220,7 @@ async function advanceToNextPlayableTrack() {
                 error
             );
 
+            // Skip this one for the current playlist.
             nextTrack.playable = false;
         }
     }
@@ -215,6 +243,7 @@ export async function playMusic() {
     let track =
         playlist[currentTrackIndex];
 
+    // Find something usable if the current entry cannot be played.
     if (!track || !track.playable) {
         const firstPlayableIndex =
             playlist.findIndex(
@@ -236,8 +265,7 @@ export async function playMusic() {
         return false;
     }
 
-    // A completed track can be replayed
-    // from the beginning without replacing src.
+    // A completed playlist should start over on the next drill.
     if (
         audio.ended ||
         (
@@ -288,8 +316,8 @@ export function pauseMusic() {
 }
 
 
-// Stop the current session but preserve
-// the selected playlist for the next drill.
+// Stop the session but keep the selected files.
+// This lets another drill reuse the same playlist.
 export function stopMusic() {
     audio.pause();
 
@@ -297,12 +325,30 @@ export function stopMusic() {
 
     currentTrackIndex = 0;
 
-    // Do not destroy the audio source here.
-    // If Track 1 is still loaded, simply rewind it.
+    // If Track 1 is already loaded, just rewind it.
+    // No point destroying the source and rebuilding it every run.
     if (loadedTrackIndex === 0) {
         try {
             audio.currentTime = 0;
         } catch (e) {}
+    } else {
+        // Playlist may have ended on another track.
+        // Prepare Track 1 again for the next drill.
+        const firstPlayableIndex =
+            playlist.findIndex(
+                track => track.playable
+            );
+
+        if (firstPlayableIndex >= 0) {
+            currentTrackIndex =
+                firstPlayableIndex;
+
+            loadCurrentTrack();
+
+            try {
+                audio.currentTime = 0;
+            } catch (e) {}
+        }
     }
 
     if (progressCallback) {
@@ -347,7 +393,8 @@ export function getPlaylistInfo() {
         || null;
 
     const currentTime =
-        loadedTrackIndex === currentTrackIndex &&
+        loadedTrackIndex ===
+            currentTrackIndex &&
         Number.isFinite(audio.currentTime)
             ? audio.currentTime
             : 0;
@@ -404,20 +451,24 @@ export function getPlaylistInfo() {
 
 
 export function onPlaylistEnded(callback) {
-    playlistEndedCallback = callback;
+    playlistEndedCallback =
+        callback;
 }
 
 
 export function onTrackChanged(callback) {
-    trackChangedCallback = callback;
+    trackChangedCallback =
+        callback;
 }
 
 
 export function onProgress(callback) {
-    progressCallback = callback;
+    progressCallback =
+        callback;
 }
 
 
+// Move to the next file when the current one finishes.
 audio.addEventListener(
     'ended',
     async () => {
@@ -426,12 +477,11 @@ audio.addEventListener(
 );
 
 
+// Keep this mostly for debugging.
+// Do not permanently invalidate the file because of one media error.
 audio.addEventListener(
     'error',
     () => {
-        // Runtime playback errors are logged,
-        // but we do not permanently invalidate
-        // the user's selected local file.
         console.error(
             'Audio playback error:',
             audio.error
