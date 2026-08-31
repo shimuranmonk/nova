@@ -1,4 +1,4 @@
-# Nova S Pro Drill Control
+# Nova S Pro Drill Control PLUS
 
 A browser-based controller for the Nova S Pro table tennis robot.
 
