@@ -118,9 +118,13 @@ function loadCurrentTrack() {
         URL.createObjectURL(track.file);
 
     loadedTrackIndex =
-        currentTrackIndex;
+    currentTrackIndex;
 
     audio.src = trackObjectUrl;
+
+    // Explicitly load the newly assigned local audio file.
+    // Important for reliable Blob URL playback on mobile browsers.
+    audio.load();
 
     if (trackChangedCallback) {
         trackChangedCallback(
