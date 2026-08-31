@@ -1073,3 +1073,70 @@ input[type="number"]:disabled { opacity: 0.5; cursor: not-allowed; color: var(--
     transform: translateY(-50%);
     font-size: 0.8rem;
 }
+
+/* -----------------------------
+   Music Playlist Controls
+   ----------------------------- */
+
+.music-control {
+    min-width: 180px;
+}
+
+.music-file-input {
+    display: none;
+}
+
+.music-file-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-height: 36px;
+    padding: 8px 14px;
+
+    border-radius: 10px;
+    border: 1px solid var(--border-color, #555);
+
+    cursor: pointer;
+
+    font-size: 0.9rem;
+    font-weight: 600;
+
+    user-select: none;
+}
+
+.music-file-btn:active {
+    transform: scale(0.98);
+}
+
+.music-playlist-info {
+    margin-top: 6px;
+
+    max-width: 220px;
+
+    font-size: 0.78rem;
+    line-height: 1.25;
+
+    opacity: 0.85;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+    .music-control {
+        min-width: 150px;
+        width: 100%;
+    }
+
+    .music-file-btn {
+        width: 100%;
+        min-height: 40px;
+    }
+
+    .music-playlist-info {
+        max-width: 100%;
+        text-align: center;
+    }
+}
