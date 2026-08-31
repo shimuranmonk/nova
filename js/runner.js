@@ -560,32 +560,32 @@ function updateMusicRunDisplay(info) {
     ui.label.textContent =
         `TRACK ${trackNumber} OF ${trackCount}`;
 
-    ui.display.innerHTML = `
-        <div
-            style="
-                font-size:0.42em;
-                line-height:1.25;
-                max-width:220px;
-                overflow:hidden;
-                text-overflow:ellipsis;
-                white-space:nowrap;
-            "
-        >
-            ${trackName}
-        </div>
+ui.display.innerHTML = `
+    <div
+        style="
+            font-size:0.30em;
+            line-height:1.15;
+            max-width:190px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+        "
+    >
+        ${trackName}
+    </div>
 
-        <div
-            style="
-                font-size:0.34em;
-                line-height:1.35;
-                margin-top:8px;
-            "
-        >
-            ${formatMusicTime(elapsed)} elapsed<br>
-            ${formatMusicTime(remaining)} remaining<br>
-            ${formatMusicTime(total)} total
-        </div>
-    `;
+    <div
+        style="
+            font-size:0.24em;
+            line-height:1.25;
+            margin-top:6px;
+        "
+    >
+        ${formatMusicTime(elapsed)} elapsed<br>
+        ${formatMusicTime(remaining)} remaining<br>
+        ${formatMusicTime(total)} total
+    </div>
+`;
 
     const progressFraction =
         total > 0
