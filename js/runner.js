@@ -21,12 +21,12 @@ let remainingTime = 0;
 let pauseTimer = null;
 let countdownTimer = null;
 let runTimer = null;
-let startTimeout = null; // Track the start delay
+let startTimeout = null;
 
 let activeDrillParams = null;
 let activeDrillRandom = false;
 
-// UI Elements (Cached for performance)
+// UI Elements
 const ui = {
     overlay: document.getElementById('run-overlay'),
     display: document.getElementById('run-display'),
@@ -45,7 +45,7 @@ export function startDrillSequence(drillName) {
         return;
     }
 
-    // --- FILTER INACTIVE STEPS ---
+    // Filter inactive steps
     const executableSteps = rawParams.filter(step => {
         const isActive = step[0][6];
         return isActive === undefined || isActive === 1;
@@ -60,6 +60,16 @@ export function startDrillSequence(drillName) {
         return;
     }
 
+    // Music mode requires a playlist before starting
+    if (runMode === 'music' && !hasPlaylist()) {
+        showToast("Select music first");
+
+        document.querySelectorAll('.btn-drill')
+            .forEach(b => b.classList.remove('running'));
+
+        return;
+    }
+
     activeDrillParams = executableSteps;
     activeDrillRandom = !!currentDrills[drillName].random;
 
@@ -67,7 +77,7 @@ export function startDrillSequence(drillName) {
     setLastPlayed(drillName);
     updateLastPlayedHighlight();
 
-    // Lock scroll on start
+    // Prepare run overlay
     toggleBodyScroll(true);
     ui.overlay.classList.add('open');
 
@@ -82,37 +92,64 @@ export function startDrillSequence(drillName) {
 
     void ui.progress.offsetWidth;
 
-    requestAnimationFrame(() => {
-        ui.progress.style.transition =
-            'stroke-dashoffset 4s linear';
+    const startCountdown = () => {
+        requestAnimationFrame(() => {
+            ui.progress.style.transition =
+                'stroke-dashoffset 4s linear';
 
-        ui.progress.style.strokeDashoffset = '565';
-    });
+            ui.progress.style.strokeDashoffset = '565';
+        });
 
-    countdownTimer = setInterval(() => {
-        count--;
+        countdownTimer = setInterval(() => {
+            count--;
 
-        if (count > 0) {
-            ui.display.textContent = count;
-        } else {
-            clearInterval(countdownTimer);
+            if (count > 0) {
+                ui.display.textContent = count;
+            } else {
+                clearInterval(countdownTimer);
 
-            ui.display.textContent = "GO!";
+                ui.display.textContent = "GO!";
 
-            // Store timeout to allow cancelling
-            startTimeout = setTimeout(
-                beginDrillExecution,
-                800
-            );
-        }
-    }, 1000);
+                startTimeout = setTimeout(
+                    beginDrillExecution,
+                    800
+                );
+            }
+        }, 1000);
+    };
+
+    // -----------------------------------------
+    // MUSIC MODE
+    // -----------------------------------------
+    // Start music BEFORE the countdown
+    if (runMode === 'music') {
+
+        onPlaylistEnded(() => {
+            stopRun();
+        });
+
+        playMusic().then((started) => {
+            if (!started) {
+                showToast("Unable to start music");
+                stopRun();
+                return;
+            }
+
+            startCountdown();
+        });
+
+        return;
+    }
+
+    // Reps and Time start countdown normally
+    startCountdown();
 }
 
 export function beginDrillExecution() {
     isRunning = true;
     isPaused = false;
 
-    // Increment Drill Count ONCE per session
+    // Increment drill count once per session
     appStats.drills += 1;
 
     localStorage.setItem(
@@ -170,28 +207,8 @@ export function beginDrillExecution() {
     // MUSIC PLAYLIST MODE
     // -----------------------------------------
     else if (runMode === 'music') {
-
-        if (!hasPlaylist()) {
-            showToast("Select music first");
-            stopRun();
-            return;
-        }
-
         ui.label.textContent = "MUSIC";
         ui.display.textContent = "PLAY";
-
-        onPlaylistEnded(() => {
-            if (isRunning) {
-                stopRun();
-            }
-        });
-
-        playMusic().then((started) => {
-            if (!started && isRunning) {
-                showToast("Unable to start music");
-                stopRun();
-            }
-        });
     }
 
     // -----------------------------------------
@@ -307,7 +324,7 @@ async function runIteration() {
         );
     });
 
-    // Only increment BALLS here
+    // Increment balls
     appStats.balls += balls.length;
 
     localStorage.setItem(
@@ -357,9 +374,9 @@ export function handleDone() {
 
 export function togglePause() {
     if (isPaused) {
-        // -----------------------------
+        // -----------------------------------------
         // RESUME
-        // -----------------------------
+        // -----------------------------------------
         isPaused = false;
 
         ui.btnPause.textContent = "PAUSE";
@@ -384,9 +401,9 @@ export function togglePause() {
         runIteration();
 
     } else {
-        // -----------------------------
+        // -----------------------------------------
         // PAUSE
-        // -----------------------------
+        // -----------------------------------------
         isPaused = true;
 
         ui.btnPause.textContent = "RESUME";
@@ -407,12 +424,14 @@ export function togglePause() {
             );
 
         ui.progress.style.transition = 'none';
+
         ui.progress.style.strokeDashoffset =
             currentOffset;
 
         sendPacket([0x80, 1, 0, 1]);
     }
 }
+
 export function stopRun() {
     isRunning = false;
     isPaused = false;
@@ -427,7 +446,6 @@ export function stopRun() {
     clearTimeout(pauseTimer);
     clearTimeout(startTimeout);
 
-    // Unlock scroll on stop
     toggleBodyScroll(false);
 
     ui.overlay.classList.remove('open');
@@ -444,21 +462,17 @@ export function stopRun() {
 
 // Skip Countdown
 export function skipCountdown() {
-    // Only execute if NOT running and overlay IS open
     if (isRunning) return;
 
     if (!ui.overlay.classList.contains('open')) {
         return;
     }
 
-    // Cancel any pending start mechanisms
     clearInterval(countdownTimer);
     clearTimeout(startTimeout);
 
-    // Visual feedback
     ui.display.textContent = "GO!";
 
-    // Start immediately
     beginDrillExecution();
 }
 
@@ -478,6 +492,7 @@ function buildPacket(balls) {
         new DataView(b);
 
     v.setUint8(0, 0x81);
+
     v.setUint16(
         1,
         4 + balls.length * 24,
@@ -485,7 +500,13 @@ function buildPacket(balls) {
     );
 
     v.setUint8(3, 1);
-    v.setUint16(4, 1, true);
+
+    v.setUint16(
+        4,
+        1,
+        true
+    );
+
     v.setUint8(6, 0);
 
     const u =
