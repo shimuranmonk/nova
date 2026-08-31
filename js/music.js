@@ -11,7 +11,6 @@ let trackChangedCallback = null;
 let progressCallback = null;
 
 let progressTimer = null;
-let intentionalReset = false;
 
 audio.preload = 'metadata';
 
@@ -33,16 +32,6 @@ function getAudioDuration(file) {
 
         tempAudio.preload = 'metadata';
 
-        const cleanup = () => {
-            URL.revokeObjectURL(url);
-
-            tempAudio.removeAttribute('src');
-
-            try {
-                tempAudio.load();
-            } catch (e) {}
-        };
-
         tempAudio.addEventListener(
             'loadedmetadata',
             () => {
@@ -51,7 +40,7 @@ function getAudioDuration(file) {
                         ? tempAudio.duration
                         : 0;
 
-                cleanup();
+                URL.revokeObjectURL(url);
                 resolve(duration);
             },
             { once: true }
@@ -60,7 +49,7 @@ function getAudioDuration(file) {
         tempAudio.addEventListener(
             'error',
             () => {
-                cleanup();
+                URL.revokeObjectURL(url);
                 resolve(0);
             },
             { once: true }
@@ -72,7 +61,12 @@ function getAudioDuration(file) {
 
 
 export async function loadPlaylist(fileList) {
-    resetAudioSource();
+    audio.pause();
+    stopProgressUpdates();
+
+    revokeCurrentUrl();
+
+    audio.removeAttribute('src');
 
     const files = Array.from(fileList || []);
 
@@ -108,7 +102,8 @@ function loadCurrentTrack() {
         return false;
     }
 
-    // Already loaded
+    // If this exact track is already loaded,
+    // keep using the same audio source.
     if (
         loadedTrackIndex === currentTrackIndex &&
         trackObjectUrl &&
@@ -125,10 +120,7 @@ function loadCurrentTrack() {
     loadedTrackIndex =
         currentTrackIndex;
 
-    audio.src =
-        trackObjectUrl;
-
-    audio.load();
+    audio.src = trackObjectUrl;
 
     if (trackChangedCallback) {
         trackChangedCallback(
@@ -145,13 +137,11 @@ function startProgressUpdates() {
 
     progressTimer =
         setInterval(() => {
-
             if (progressCallback) {
                 progressCallback(
                     getPlaylistInfo()
                 );
             }
-
         }, 500);
 }
 
@@ -165,12 +155,10 @@ function stopProgressUpdates() {
 
 
 async function advanceToNextPlayableTrack() {
-
     while (
         currentTrackIndex <
         playlist.length - 1
     ) {
-
         currentTrackIndex++;
 
         const nextTrack =
@@ -195,7 +183,6 @@ async function advanceToNextPlayableTrack() {
             return true;
 
         } catch (error) {
-
             console.error(
                 'Unable to play track:',
                 nextTrack.name,
@@ -217,25 +204,14 @@ async function advanceToNextPlayableTrack() {
 
 
 export async function playMusic() {
-
     if (!hasPlaylist()) {
         return false;
-    }
-
-    // If the previous session finished,
-    // start again from Track 1.
-    if (
-        currentTrackIndex >= playlist.length
-    ) {
-        currentTrackIndex = 0;
     }
 
     let track =
         playlist[currentTrackIndex];
 
-    // Find first playable track if needed
     if (!track || !track.playable) {
-
         const firstPlayableIndex =
             playlist.findIndex(
                 item => item.playable
@@ -256,12 +232,13 @@ export async function playMusic() {
         return false;
     }
 
-    // If track already finished,
-    // rewind before playing again.
+    // A completed track can be replayed
+    // from the beginning without replacing src.
     if (
         audio.ended ||
         (
             Number.isFinite(audio.duration) &&
+            audio.duration > 0 &&
             audio.currentTime >= audio.duration
         )
     ) {
@@ -284,15 +261,12 @@ export async function playMusic() {
         return true;
 
     } catch (error) {
-
         console.error(
             'Unable to play music:',
             error
         );
 
-        track.playable = false;
-
-        return advanceToNextPlayableTrack();
+        return false;
     }
 }
 
@@ -310,60 +284,28 @@ export function pauseMusic() {
 }
 
 
-// Used when a drill/session ends.
-// Playlist remains selected and reusable.
+// Stop the current session but preserve
+// the selected playlist for the next drill.
 export function stopMusic() {
-
-    intentionalReset = true;
-
     audio.pause();
 
     stopProgressUpdates();
 
-    // Return playlist to beginning
     currentTrackIndex = 0;
 
-    // Force Track 1 to be loaded fresh
-    // when the next drill starts.
-    revokeCurrentUrl();
-
-    audio.removeAttribute('src');
-
-    try {
-        audio.load();
-    } catch (e) {}
-
-    intentionalReset = false;
+    // Do not destroy the audio source here.
+    // If Track 1 is still loaded, simply rewind it.
+    if (loadedTrackIndex === 0) {
+        try {
+            audio.currentTime = 0;
+        } catch (e) {}
+    }
 
     if (progressCallback) {
         progressCallback(
             getPlaylistInfo()
         );
     }
-}
-
-
-// Used when loading a completely
-// different playlist.
-function resetAudioSource() {
-
-    intentionalReset = true;
-
-    audio.pause();
-
-    stopProgressUpdates();
-
-    currentTrackIndex = 0;
-
-    revokeCurrentUrl();
-
-    audio.removeAttribute('src');
-
-    try {
-        audio.load();
-    } catch (e) {}
-
-    intentionalReset = false;
 }
 
 
@@ -375,7 +317,6 @@ export function hasPlaylist() {
 
 
 export function getPlaylistInfo() {
-
     const totalDuration =
         playlist.reduce(
             (sum, track) =>
@@ -402,9 +343,8 @@ export function getPlaylistInfo() {
         || null;
 
     const currentTime =
-        Number.isFinite(
-            audio.currentTime
-        )
+        loadedTrackIndex === currentTrackIndex &&
+        Number.isFinite(audio.currentTime)
             ? audio.currentTime
             : 0;
 
@@ -428,8 +368,7 @@ export function getPlaylistInfo() {
 
         playableTrackCount:
             playlist.filter(
-                track =>
-                    track.playable
+                track => track.playable
             ).length,
 
         currentTrackIndex,
@@ -460,38 +399,24 @@ export function getPlaylistInfo() {
 }
 
 
-export function onPlaylistEnded(
-    callback
-) {
-    playlistEndedCallback =
-        callback;
+export function onPlaylistEnded(callback) {
+    playlistEndedCallback = callback;
 }
 
 
-export function onTrackChanged(
-    callback
-) {
-    trackChangedCallback =
-        callback;
+export function onTrackChanged(callback) {
+    trackChangedCallback = callback;
 }
 
 
-export function onProgress(
-    callback
-) {
-    progressCallback =
-        callback;
+export function onProgress(callback) {
+    progressCallback = callback;
 }
 
 
 audio.addEventListener(
     'ended',
     async () => {
-
-        if (intentionalReset) {
-            return;
-        }
-
         await advanceToNextPlayableTrack();
     }
 );
@@ -499,31 +424,13 @@ audio.addEventListener(
 
 audio.addEventListener(
     'error',
-    async () => {
-
-        // Ignore errors generated while
-        // intentionally resetting src.
-        if (intentionalReset) {
-            return;
-        }
-
-        const failedTrack =
-            playlist[
-                currentTrackIndex
-            ];
-
-        if (failedTrack) {
-            failedTrack.playable =
-                false;
-
-            console.error(
-                'Skipping unplayable track:',
-                failedTrack.name
-            );
-        }
-
-        stopProgressUpdates();
-
-        await advanceToNextPlayableTrack();
+    () => {
+        // Runtime playback errors are logged,
+        // but we do not permanently invalidate
+        // the user's selected local file.
+        console.error(
+            'Audio playback error:',
+            audio.error
+        );
     }
 );
