@@ -47,6 +47,7 @@ import {
 } from './runner.js';
 
 import { downloadDrill } from './cloud.js';
+import { loadPlaylist } from './music.js';
 
 // --- Initialization ---
 
@@ -87,6 +88,43 @@ function setupEventListeners() {
         };
     }
 
+const inputMusic = document.getElementById('input-music');
+const playlistInfo = document.getElementById('music-playlist-info');
+
+if (inputMusic) {
+    inputMusic.onchange = async (e) => {
+        const files = e.target.files;
+
+        if (!files || files.length === 0) {
+            if (playlistInfo) {
+                playlistInfo.textContent = 'No music selected';
+            }
+            return;
+        }
+
+        if (playlistInfo) {
+            playlistInfo.textContent = 'Reading playlist...';
+        }
+
+        try {
+            const info = await loadPlaylist(files);
+
+            if (playlistInfo) {
+                playlistInfo.textContent =
+                    `${info.trackCount} track${info.trackCount === 1 ? '' : 's'} - ${formatPlaylistTime(info.totalDuration)}`;
+            }
+        } catch (error) {
+            console.error('Playlist load error:', error);
+
+            if (playlistInfo) {
+                playlistInfo.textContent = 'Unable to load playlist';
+            }
+
+            showToast('Unable to load music');
+        }
+    };
+}
+  
     // --- NEW: Tap to Skip Countdown ---
     const runDisplay = document.getElementById('run-display');
     if (runDisplay) {
@@ -123,6 +161,23 @@ function setupEventListeners() {
             testBtns.forEach(b => b.disabled = !bleState.isConnected);
         }
     });
+}
+
+function formatPlaylistTime(seconds) {
+    if (!Number.isFinite(seconds) || seconds < 0) {
+        return '0:00';
+    }
+
+    const totalSeconds = Math.round(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
 // --- Window Binding for HTML Compatibility ---
