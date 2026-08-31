@@ -139,17 +139,26 @@ window.setLevel = (lvl, btn) => {
 
 window.setMode = (mode, btn) => {
     setMode(mode);
-    document.querySelectorAll('.mode-option').forEach(d => d.classList.remove('active'));
-    if(btn) btn.classList.add('active');
-    
+
+    document.querySelectorAll('.mode-option')
+        .forEach(d => d.classList.remove('active'));
+
+    if (btn) btn.classList.add('active');
+
     const uiReps = document.getElementById('ui-reps');
     const uiTime = document.getElementById('ui-time');
-    if(mode === 'reps') {
+    const uiMusic = document.getElementById('ui-music');
+
+    uiReps?.classList.add('hidden');
+    uiTime?.classList.add('hidden');
+    uiMusic?.classList.add('hidden');
+
+    if (mode === 'reps') {
         uiReps?.classList.remove('hidden');
-        uiTime?.classList.add('hidden');
-    } else {
-        uiReps?.classList.add('hidden');
+    } else if (mode === 'time') {
         uiTime?.classList.remove('hidden');
+    } else if (mode === 'music') {
+        uiMusic?.classList.remove('hidden');
     }
 };
 
