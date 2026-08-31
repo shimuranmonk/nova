@@ -357,6 +357,9 @@ export function handleDone() {
 
 export function togglePause() {
     if (isPaused) {
+        // -----------------------------
+        // RESUME
+        // -----------------------------
         isPaused = false;
 
         ui.btnPause.textContent = "PAUSE";
@@ -369,10 +372,21 @@ export function togglePause() {
             ui.progress.style.strokeDashoffset = '565';
         }
 
-        // Music resume will be added in the next step.
+        if (runMode === 'music') {
+            playMusic().then((started) => {
+                if (!started && isRunning) {
+                    showToast("Unable to resume music");
+                    stopRun();
+                }
+            });
+        }
 
         runIteration();
+
     } else {
+        // -----------------------------
+        // PAUSE
+        // -----------------------------
         isPaused = true;
 
         ui.btnPause.textContent = "RESUME";
@@ -393,14 +407,12 @@ export function togglePause() {
             );
 
         ui.progress.style.transition = 'none';
-
         ui.progress.style.strokeDashoffset =
             currentOffset;
 
         sendPacket([0x80, 1, 0, 1]);
     }
 }
-
 export function stopRun() {
     isRunning = false;
     isPaused = false;
