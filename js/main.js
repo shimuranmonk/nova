@@ -131,6 +131,67 @@ if (inputMusic) {
     };
 }
   
+
+// *********************************************
+
+const testSaveTrack = document.getElementById('test-save-track');
+const testPlaySavedTrack = document.getElementById('test-play-saved-track');
+
+if (testSaveTrack) {
+    testSaveTrack.addEventListener('change', async (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) return;
+
+        const testTrack = {
+            id: 'test-track-001',
+            name: file.name,
+            type: file.type,
+            duration: 0,
+            size: file.size,
+            audioBlob: file
+        };
+
+        try {
+            await saveTrack(testTrack);
+            console.log('Test track saved:', file.name);
+        } catch (error) {
+            console.error('Test track save failed:', error);
+        }
+    });
+}
+
+if (testPlaySavedTrack) {
+    testPlaySavedTrack.addEventListener('click', async () => {
+        try {
+            const track = await getTrack('test-track-001');
+
+            if (!track || !track.audioBlob) {
+                console.log('No saved test track found');
+                return;
+            }
+
+            const url = URL.createObjectURL(track.audioBlob);
+            const audio = new Audio(url);
+
+            audio.addEventListener('ended', () => {
+                URL.revokeObjectURL(url);
+            }, { once: true });
+
+            await audio.play();
+
+            console.log('Playing saved test track:', track.name);
+        } catch (error) {
+            console.error('Saved track playback failed:', error);
+        }
+    });
+}
+    
+
+
+// *********************************************
+  
+
     // --- NEW: Tap to Skip Countdown ---
     const runDisplay = document.getElementById('run-display');
     if (runDisplay) {
@@ -167,6 +228,7 @@ if (inputMusic) {
             testBtns.forEach(b => b.disabled = !bleState.isConnected);
         }
     });
+   
 }
 
 function formatPlaylistTime(seconds) {
