@@ -4,16 +4,38 @@ const DB_VERSION = 1;
 const TRACK_STORE = 'tracks';
 const PLAYLIST_STORE = 'playlists';
 
-// Keep one database connection promise.
-// Para hindi tayo paulit-ulit mag-open ng IndexedDB every call.
+// Keep one DB connection promise.
+// Para dili sige ug open sa IndexedDB kada function call.
 let dbPromise = null;
+
+
+/*
+ * Generate an internal ID for playlists/tracks.
+ *
+ * IMPORTANT:
+ * IDs are not based on filename, playlist name, or order.
+ * Once assigned, mao na gyud na ang identity sa record.
+ */
+function makeId() {
+    if (crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+
+    // Fallback lang for older Chromium builds.
+    // Our normal Android browsers should support randomUUID().
+    return (
+        Date.now().toString(36) +
+        '-' +
+        Math.random().toString(36).slice(2)
+    );
+}
 
 
 /*
  * Opens the Nova music database.
  *
- * First run will also create the required stores.
- * Sa susunod na reload, bubuksan na lang yung existing DB.
+ * First run creates the stores.
+ * Existing DB just opens normally.
  */
 export function openPlaylistDatabase() {
     if (dbPromise) {
@@ -24,23 +46,20 @@ export function openPlaylistDatabase() {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
 
         /*
-         * Runs only when the database is first created
-         * or DB_VERSION is increased later.
-         *
-         * Mao ni ang place para mag-add ug new stores
-         * kung naa tay future upgrade.
+         * Runs on first creation or when DB_VERSION
+         * gets increased later.
          */
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
 
-            // Store the actual audio track records here.
+            // Actual stored audio tracks live here.
             if (!db.objectStoreNames.contains(TRACK_STORE)) {
                 db.createObjectStore(TRACK_STORE, {
                     keyPath: 'id'
                 });
             }
 
-            // Playlist records only keep playlist info and track IDs.
+            // Playlist records only keep playlist info + track IDs.
             if (!db.objectStoreNames.contains(PLAYLIST_STORE)) {
                 db.createObjectStore(PLAYLIST_STORE, {
                     keyPath: 'id'
@@ -67,15 +86,55 @@ export function openPlaylistDatabase() {
 
 
 /*
+ * Build a new track record.
+ *
+ * This does NOT save anything yet.
+ *
+ * Stable ID is assigned here and should never change,
+ * even if the filename/display name changes later.
+ *
+ * metadata is intentionally present from day one.
+ * MSYNC, BPM analysis, tags, etc. can attach data here later
+ * without changing playlist identity/storage logic.
+ */
+export function createTrackRecord(file, duration = 0) {
+    if (!file) {
+        throw new Error('Audio file is required');
+    }
+
+    return {
+        id: makeId(),
+
+        filename: file.name,
+        displayName: file.name,
+
+        type: file.type || 'audio/*',
+        duration: Number.isFinite(duration) ? duration : 0,
+        size: file.size || 0,
+
+        audioBlob: file,
+
+        createdAt: Date.now(),
+
+        // Reserved extension area.
+        // Ayaw tanggalon. Future MSYNC lives around here.
+        metadata: {}
+    };
+}
+
+
+/*
  * Save or update a track.
  *
- * store.put() works for both:
- * - new track
- * - existing track with same ID
+ * store.put() handles both new and existing records.
  *
- * Audio Blob will eventually be stored inside this record.
+ * Updating filename/displayName must NOT generate a new ID.
  */
 export async function saveTrack(track) {
+    if (!track || !track.id) {
+        throw new Error('Track must have a stable ID');
+    }
+
     const db = await openPlaylistDatabase();
 
     return new Promise((resolve, reject) => {
@@ -85,7 +144,6 @@ export async function saveTrack(track) {
         );
 
         const store = transaction.objectStore(TRACK_STORE);
-
         const request = store.put(track);
 
         request.onsuccess = () => {
@@ -105,7 +163,7 @@ export async function saveTrack(track) {
 
 
 /*
- * Load one track using its ID.
+ * Load one track by its permanent internal ID.
  *
  * Returns null kung wala makita.
  */
@@ -119,7 +177,6 @@ export async function getTrack(id) {
         );
 
         const store = transaction.objectStore(TRACK_STORE);
-
         const request = store.get(id);
 
         request.onsuccess = () => {
@@ -139,13 +196,60 @@ export async function getTrack(id) {
 
 
 /*
+ * Create a new empty playlist and save it immediately.
+ *
+ * Playlist order is stored in trackIds[].
+ * Track identity itself stays inside the tracks store.
+ */
+export async function createPlaylist(name) {
+    const cleanName = String(name || '').trim();
+
+    if (!cleanName) {
+        throw new Error('Playlist name is required');
+    }
+
+    const now = Date.now();
+
+    const playlist = {
+        id: makeId(),
+        name: cleanName,
+
+        // Order matters here.
+        // Moving a song only changes this array,
+        // never the song's own ID.
+        trackIds: [],
+
+        createdAt: now,
+        updatedAt: now
+    };
+
+    await savePlaylist(playlist);
+
+    return playlist;
+}
+
+
+/*
  * Save or update a playlist.
  *
- * Playlist should only reference track IDs.
- * Ayaw magbutang ug duplicate audio data diri.
+ * Existing playlist keeps the same ID.
  */
 export async function savePlaylist(playlist) {
+    if (!playlist || !playlist.id) {
+        throw new Error('Playlist must have an ID');
+    }
+
     const db = await openPlaylistDatabase();
+
+    // Make sure old/future records don't end up
+    // without the basic fields we depend on.
+    const record = {
+        ...playlist,
+        trackIds: Array.isArray(playlist.trackIds)
+            ? playlist.trackIds
+            : [],
+        updatedAt: playlist.updatedAt || Date.now()
+    };
 
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(
@@ -154,11 +258,10 @@ export async function savePlaylist(playlist) {
         );
 
         const store = transaction.objectStore(PLAYLIST_STORE);
-
-        const request = store.put(playlist);
+        const request = store.put(record);
 
         request.onsuccess = () => {
-            resolve(playlist);
+            resolve(record);
         };
 
         request.onerror = () => {
@@ -174,9 +277,9 @@ export async function savePlaylist(playlist) {
 
 
 /*
- * Load one playlist using its ID.
+ * Load one playlist by ID.
  *
- * Returns null kung wala pa / deleted na.
+ * Returns null kung deleted or wala pa.
  */
 export async function getPlaylist(id) {
     const db = await openPlaylistDatabase();
@@ -188,7 +291,6 @@ export async function getPlaylist(id) {
         );
 
         const store = transaction.objectStore(PLAYLIST_STORE);
-
         const request = store.get(id);
 
         request.onsuccess = () => {
@@ -198,6 +300,111 @@ export async function getPlaylist(id) {
         request.onerror = () => {
             console.error(
                 'Unable to load playlist:',
+                request.error
+            );
+
+            reject(request.error);
+        };
+    });
+}
+
+
+/*
+ * Return all saved playlists.
+ *
+ * Sort alphabetically for now.
+ * Display order can be changed later if needed.
+ */
+export async function getAllPlaylists() {
+    const db = await openPlaylistDatabase();
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(
+            PLAYLIST_STORE,
+            'readonly'
+        );
+
+        const store = transaction.objectStore(PLAYLIST_STORE);
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            const playlists = request.result || [];
+
+            playlists.sort((a, b) =>
+                String(a.name || '').localeCompare(
+                    String(b.name || '')
+                )
+            );
+
+            resolve(playlists);
+        };
+
+        request.onerror = () => {
+            console.error(
+                'Unable to list playlists:',
+                request.error
+            );
+
+            reject(request.error);
+        };
+    });
+}
+
+
+/*
+ * Rename a playlist.
+ *
+ * Only the name changes.
+ * Playlist ID and every track ID remain untouched.
+ */
+export async function renamePlaylist(id, newName) {
+    const cleanName = String(newName || '').trim();
+
+    if (!cleanName) {
+        throw new Error('Playlist name is required');
+    }
+
+    const playlist = await getPlaylist(id);
+
+    if (!playlist) {
+        throw new Error('Playlist not found');
+    }
+
+    playlist.name = cleanName;
+    playlist.updatedAt = Date.now();
+
+    return savePlaylist(playlist);
+}
+
+
+/*
+ * Delete only the playlist record.
+ *
+ * IMPORTANT:
+ * Tracks are intentionally NOT deleted here.
+ *
+ * Basin gigamit pa ang same track sa lain playlist.
+ * We'll handle unused/orphan track cleanup separately later.
+ */
+export async function deletePlaylist(id) {
+    const db = await openPlaylistDatabase();
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(
+            PLAYLIST_STORE,
+            'readwrite'
+        );
+
+        const store = transaction.objectStore(PLAYLIST_STORE);
+        const request = store.delete(id);
+
+        request.onsuccess = () => {
+            resolve(true);
+        };
+
+        request.onerror = () => {
+            console.error(
+                'Unable to delete playlist:',
                 request.error
             );
 
