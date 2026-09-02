@@ -40,6 +40,11 @@ import {
 import { showToast } from './utils.js';
 
 import {
+    openPlaylistManager,
+    closePlaylistManager
+} from './playlist-ui.js';
+
+import {
     startDrillSequence,
     stopRun,
     togglePause,
@@ -214,6 +219,9 @@ function formatPlaylistTime(seconds) {
 window.toggleMenu = toggleMenu;
 window.setTheme = setTheme;
 window.switchTab = switchTab;
+
+window.openPlaylistManager = openPlaylistManager;
+window.closePlaylistManager = closePlaylistManager;
 
 window.setLevel = (lvl, btn) => {
     setLevel(lvl);
