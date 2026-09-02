@@ -323,52 +323,66 @@
             </div>
 
 
-            <div
-                class="control-pill hidden music-control"
-                id="ui-music"
-            >
-
-                <label>
-                    Music Playlist
-                </label>
-
-
-                <label
-                    for="input-music"
-                    class="music-file-btn"
-                >
-                    Choose Music
-                </label>
-
-
-                <input
-                    type="file"
-                    id="input-music"
-                    accept="audio/*"
-                    multiple
-                    class="music-file-input"
-                >
-
-
-                <div
-                    id="music-playlist-info"
-                    class="music-playlist-info"
-                >
-                    No music selected
-                </div>
-
-
-                <!-- playlist manager entry point -->
-                <button
-                    type="button"
-                    class="music-manage-btn"
-                    onclick="openPlaylistManager()"
-                >
-                    Manage Playlists
-                </button>
-
-            </div>
-
+    <div
+        class="control-pill hidden music-control"
+        id="ui-music"
+    >
+        <label>
+            Music Playlist
+        </label>
+    
+        <!-- saved playlists from IndexedDB -->
+        <select
+            id="saved-playlist-select"
+            class="music-playlist-select"
+        >
+            <option value="">
+                Select saved playlist
+            </option>
+        </select>
+    
+        <button
+            type="button"
+            id="btn-use-saved-playlist"
+            class="music-file-btn music-saved-playlist-btn"
+        >
+            Use Saved Playlist
+        </button>
+    
+        <div class="music-source-divider">
+            OR QUICK MUSIC
+        </div>
+    
+        <label
+            for="input-music"
+            class="music-file-btn"
+        >
+            Choose Music
+        </label>
+    
+        <input
+            type="file"
+            id="input-music"
+            accept="audio/*"
+            multiple
+            class="music-file-input"
+        >
+    
+        <div
+            id="music-playlist-info"
+            class="music-playlist-info"
+        >
+            No music selected
+        </div>
+    
+        <button
+            type="button"
+            class="music-manage-btn"
+            onclick="openPlaylistManager()"
+        >
+            Manage Playlists
+        </button>
+    </div>
 
             <div class="control-pill">
 
