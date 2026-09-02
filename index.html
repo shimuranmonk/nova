@@ -1285,32 +1285,42 @@
     <div class="playlist-manager-card">
 
 
-        <div class="playlist-manager-header">
+<div class="playlist-manager-header">
 
+    <div>
 
-            <div>
-
-                <div class="playlist-manager-title">
-                    Playlist Manager
-                </div>
-
-                <div class="playlist-manager-subtitle">
-                    Saved music playlists
-                </div>
-
-            </div>
-
-
-            <button
-                type="button"
-                class="playlist-manager-close"
-                onclick="closePlaylistManager()"
-                aria-label="Close playlist manager"
-            >
-                ×
-            </button>
-
+        <div class="playlist-manager-title">
+            Playlist Manager
         </div>
+
+        <div class="playlist-manager-subtitle">
+            Saved music playlists
+        </div>
+
+    </div>
+
+    <div style="display:flex; align-items:center; gap:8px;">
+
+        <button
+            type="button"
+            class="music-manage-btn"
+            onclick="createPlaylistFromUI()"
+        >
+            New Playlist
+        </button>
+
+        <button
+            type="button"
+            class="playlist-manager-close"
+            onclick="closePlaylistManager()"
+            aria-label="Close playlist manager"
+        >
+            ×
+        </button>
+
+    </div>
+
+</div>
 
 
         <div
