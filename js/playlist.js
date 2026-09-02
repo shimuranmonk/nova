@@ -490,3 +490,50 @@ export async function getPlaylistTracks(playlistId) {
 
     return tracks;
 }
+
+/*
+ * get all stored tracks.
+ *
+ * gamit ni sa playlist manager para ma-check nato
+ * kung naa na daan ang song before mag save ug another copy.
+ */
+export async function getAllTracks() {
+    const db = await openPlaylistDatabase();
+
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(
+            'tracks',
+            'readonly'
+        );
+
+        const store = tx.objectStore('tracks');
+        const request = store.getAll();
+
+        request.onsuccess = () => {
+            resolve(request.result || []);
+        };
+
+        request.onerror = () => {
+            reject(request.error);
+        };
+    });
+}
+
+
+/*
+ * lookup pinaagi sa audio fingerprint.
+ *
+ * hash goes inside metadata so wala ta kinahanglan DB migration.
+ * old tracks without hash are still valid, dili sila ma break.
+ */
+export async function findTrackByHash(hash) {
+    if (!hash) {
+        return null;
+    }
+
+    const tracks = await getAllTracks();
+
+    return tracks.find(track =>
+        track?.metadata?.sha256 === hash
+    ) || null;
+}
