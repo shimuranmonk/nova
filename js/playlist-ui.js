@@ -1,7 +1,8 @@
 import {
     getAllPlaylists,
     getPlaylistTracks,
-    createPlaylist
+    createPlaylist,
+    renamePlaylist
 } from './playlist.js';
 
 
@@ -85,7 +86,26 @@ export async function refreshPlaylistManager() {
             info.appendChild(name);
             info.appendChild(meta);
 
+            const actions = document.createElement('div');
+            actions.className = 'playlist-manager-row-actions';
+
+            const renameBtn = document.createElement('button');
+            renameBtn.type = 'button';
+            renameBtn.className = 'playlist-manager-action-btn';
+            renameBtn.textContent = 'Rename';
+
+            renameBtn.addEventListener('click', async () => {
+                await renamePlaylistFromUI(
+                    playlist.id,
+                    playlist.name
+                );
+            });
+
+            actions.appendChild(renameBtn);
+
             row.appendChild(info);
+            row.appendChild(actions);
+
             list.appendChild(row);
         }
 
@@ -122,6 +142,43 @@ export async function createPlaylistFromUI() {
 
     } catch (error) {
         console.error('Unable to create playlist:', error);
+    }
+}
+
+
+/*
+ * rename lang sa karon.
+ * important: name lang mausab, playlist id stays the same.
+ */
+export async function renamePlaylistFromUI(
+    playlistId,
+    currentName
+) {
+    const rawName = window.prompt(
+        'Rename playlist',
+        currentName
+    );
+
+    if (rawName === null) {
+        return;
+    }
+
+    const newName = rawName.trim();
+
+    if (!newName) {
+        return;
+    }
+
+    try {
+        await renamePlaylist(
+            playlistId,
+            newName
+        );
+
+        await refreshPlaylistManager();
+
+    } catch (error) {
+        console.error('Unable to rename playlist:', error);
     }
 }
 
