@@ -537,3 +537,55 @@ export async function findTrackByHash(hash) {
         track?.metadata?.sha256 === hash
     ) || null;
 }
+
+/*
+ * move one track inside a playlist.
+ *
+ * track id stays the same. order lang ang mausab.
+ * direction should be -1 for up, +1 for down.
+ */
+export async function moveTrackInPlaylist(
+    playlistId,
+    trackId,
+    direction
+) {
+    const playlist = await getPlaylist(playlistId);
+
+    if (!playlist) {
+        throw new Error('Playlist not found');
+    }
+
+    const currentIndex =
+        playlist.trackIds.indexOf(trackId);
+
+    if (currentIndex < 0) {
+        throw new Error('Track not found in playlist');
+    }
+
+    const newIndex =
+        currentIndex + direction;
+
+    /*
+     * already at top/bottom, wala nay buhaton.
+     */
+    if (
+        newIndex < 0 ||
+        newIndex >= playlist.trackIds.length
+    ) {
+        return playlist;
+    }
+
+    const reordered = [...playlist.trackIds];
+
+    const temp = reordered[currentIndex];
+
+    reordered[currentIndex] =
+        reordered[newIndex];
+
+    reordered[newIndex] = temp;
+
+    playlist.trackIds = reordered;
+    playlist.updatedAt = Date.now();
+
+    return savePlaylist(playlist);
+}
