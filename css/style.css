@@ -1344,6 +1344,18 @@ input[type="number"]:disabled { opacity: 0.5; cursor: not-allowed; color: var(--
     transform: scale(0.97);
 }
 
+.playlist-manager-row-actions {
+    gap: 6px;
+}
+
+.playlist-manager-delete-btn {
+    color: #c0392b;
+}
+
+.playlist-manager-delete-btn:active {
+    opacity: 0.75;
+}
+
 @media (max-width: 600px) {
 
     .playlist-manager-modal {
