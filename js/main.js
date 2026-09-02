@@ -42,7 +42,8 @@ import { showToast } from './utils.js';
 import {
     openPlaylistManager,
     closePlaylistManager,
-    createPlaylistFromUI
+    createPlaylistFromUI,
+    renamePlaylistFromUI
 } from './playlist-ui.js';
 
 import {
@@ -224,6 +225,7 @@ window.switchTab = switchTab;
 window.createPlaylistFromUI = createPlaylistFromUI;
 window.openPlaylistManager = openPlaylistManager;
 window.closePlaylistManager = closePlaylistManager;
+window.renamePlaylistFromUI = renamePlaylistFromUI;
 
 window.setLevel = (lvl, btn) => {
     setLevel(lvl);
