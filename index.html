@@ -85,6 +85,24 @@
 
 
         <div class="menu-title">
+            Music
+        </div>
+
+
+        <div
+            class="theme-item"
+            onclick="window.openPlaylistManager()"
+        >
+            Manage Playlists
+        </div>
+
+
+        <div
+            style="border-top: 1px solid var(--border); margin: 5px 0;"
+        ></div>
+
+
+        <div class="menu-title">
             Theme
         </div>
 
@@ -323,66 +341,66 @@
             </div>
 
 
-    <div
-        class="control-pill hidden music-control"
-        id="ui-music"
-    >
-        <label>
-            Music Playlist
-        </label>
-    
-        <!-- saved playlists from IndexedDB -->
-        <select
-            id="saved-playlist-select"
-            class="music-playlist-select"
-        >
-            <option value="">
-                Select saved playlist
-            </option>
-        </select>
-    
-        <button
-            type="button"
-            id="btn-use-saved-playlist"
-            class="music-file-btn music-saved-playlist-btn"
-        >
-            Use Saved Playlist
-        </button>
-    
-        <div class="music-source-divider">
-            OR QUICK MUSIC
-        </div>
-    
-        <label
-            for="input-music"
-            class="music-file-btn"
-        >
-            Choose Music
-        </label>
-    
-        <input
-            type="file"
-            id="input-music"
-            accept="audio/*"
-            multiple
-            class="music-file-input"
-        >
-    
-        <div
-            id="music-playlist-info"
-            class="music-playlist-info"
-        >
-            No music selected
-        </div>
-    
-        <button
-            type="button"
-            class="music-manage-btn"
-            onclick="openPlaylistManager()"
-        >
-            Manage Playlists
-        </button>
-    </div>
+            <div
+                class="control-pill hidden music-control"
+                id="ui-music"
+            >
+
+                <label>
+                    Music Playlist
+                </label>
+
+
+                <select
+                    id="saved-playlist-select"
+                    class="music-playlist-select"
+                >
+                    <option value="">
+                        Select saved playlist
+                    </option>
+                </select>
+
+
+                <button
+                    type="button"
+                    id="btn-use-saved-playlist"
+                    class="music-file-btn music-saved-playlist-btn"
+                >
+                    Use Saved Playlist
+                </button>
+
+
+                <div class="music-source-divider">
+                    OR QUICK MUSIC
+                </div>
+
+
+                <label
+                    for="input-music"
+                    class="music-file-btn"
+                >
+                    Choose Music
+                </label>
+
+
+                <input
+                    type="file"
+                    id="input-music"
+                    accept="audio/*"
+                    multiple
+                    class="music-file-input"
+                >
+
+
+                <div
+                    id="music-playlist-info"
+                    class="music-playlist-info"
+                >
+                    No music selected
+                </div>
+
+            </div>
+
 
             <div class="control-pill">
 
@@ -522,10 +540,7 @@
     </div>
 
 
-    <div
-        id="view-basic"
-        class="drill-list"
-    ></div>
+    <div id="view-basic" class="drill-list"></div>
 
     <div
         id="view-combined"
@@ -588,9 +603,7 @@
 
     <div class="modal">
 
-
         <div class="modal-header">
-
 
             <div class="header-top">
 
@@ -598,7 +611,6 @@
                     class="title-container"
                     onclick="window.handleRenameDrill()"
                 >
-
                     <span id="editor-drill-name">
                         Drill Name
                     </span>
@@ -606,7 +618,6 @@
                     <span id="editor-drill-edit-icon">
                         ✎
                     </span>
-
                 </div>
 
 
@@ -622,19 +633,16 @@
 
             <div class="header-actions">
 
-
                 <button
                     class="btn-header-share"
                     onclick="window.handleShareDrill()"
                     title="Share Drill"
                 >
-
                     <svg viewBox="0 0 24 24">
                         <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
                         <polyline points="16 6 12 2 8 6"></polyline>
                         <line x1="12" y1="2" x2="12" y2="15"></line>
                     </svg>
-
                 </button>
 
 
@@ -666,17 +674,14 @@
 
         <div class="modal-footer">
 
-
             <button
                 class="btn-modal btn-delete-drill"
                 onclick="window.handleDeleteDrill()"
                 title="Delete"
             >
-
                 <svg viewBox="0 0 24 24">
                     <path d="M3 6h18v2H3V6zm2 3h14v13H5V9zm3-5h6v2H8V4zm9 5H7v11h10V9z"/>
                 </svg>
-
             </button>
 
 
@@ -728,9 +733,7 @@
 
         <div id="run-ui">
 
-
             <div class="countdown-circle">
-
 
                 <svg viewBox="0 0 200 200">
 
@@ -811,7 +814,6 @@
         style="height:auto; min-height:300px;"
     >
 
-
         <div class="modal-header">
 
             <div class="modal-title">
@@ -837,7 +839,6 @@
                 padding-top:15px;
             "
         >
-
 
             <div
                 class="control-pill"
@@ -871,7 +872,6 @@
 
             <div>
 
-
                 <div
                     class="section-label"
                     style="
@@ -887,7 +887,6 @@
                     class="mode-switch"
                     id="dl-cat-switch"
                 >
-
 
                     <div
                         class="mode-option active"
@@ -946,7 +945,6 @@
         style="height:auto; min-height:300px;"
     >
 
-
         <div class="modal-header">
 
             <div class="modal-title">
@@ -972,7 +970,6 @@
                 padding-top:15px;
             "
         >
-
 
             <div
                 class="control-pill"
@@ -1005,7 +1002,6 @@
 
             <div>
 
-
                 <div
                     class="section-label"
                     style="
@@ -1021,7 +1017,6 @@
                     class="mode-switch"
                     id="save-cat-switch"
                 >
-
 
                     <div
                         class="mode-option active"
@@ -1083,7 +1078,6 @@
             max-width:320px;
         "
     >
-
 
         <div class="modal-header">
 
@@ -1161,7 +1155,6 @@
         "
     >
 
-
         <div class="modal-header">
 
             <div class="modal-title">
@@ -1180,7 +1173,6 @@
                 padding:15px 0;
             "
         >
-
 
             <div
                 style="
@@ -1201,7 +1193,6 @@
                     justify-content:center;
                 "
             >
-
 
                 <div class="control-pill">
 
@@ -1287,10 +1278,7 @@
 
 
 
-<!--
-    Playlist Manager
-    basic shell lang sa karon. playlist-ui.js ang mo fill sa list.
--->
+<!-- playlist manager -->
 <div
     id="playlist-manager-modal"
     class="playlist-manager-modal"
@@ -1298,91 +1286,100 @@
 
     <div class="playlist-manager-card">
 
+        <div class="playlist-manager-header">
 
-<div class="playlist-manager-header">
+            <div>
 
-    <div>
+                <div class="playlist-manager-title">
+                    Playlist Manager
+                </div>
 
-        <div class="playlist-manager-title">
-            Playlist Manager
+                <div class="playlist-manager-subtitle">
+                    Saved music playlists
+                </div>
+
+            </div>
+
+
+            <div
+                style="
+                    display:flex;
+                    align-items:center;
+                    gap:8px;
+                "
+            >
+
+                <button
+                    type="button"
+                    class="music-manage-btn"
+                    onclick="createPlaylistFromUI()"
+                >
+                    New Playlist
+                </button>
+
+
+                <button
+                    type="button"
+                    class="playlist-manager-close"
+                    onclick="closePlaylistManager()"
+                    aria-label="Close playlist manager"
+                >
+                    ×
+                </button>
+
+            </div>
+
         </div>
 
-        <div class="playlist-manager-subtitle">
-            Saved music playlists
+
+        <div id="playlist-manager-list-view">
+
+            <div
+                id="playlist-manager-list"
+                class="playlist-manager-list"
+            >
+
+                <div class="playlist-manager-empty">
+                    Loading playlists...
+                </div>
+
+            </div>
+
         </div>
 
-    </div>
-
-    <div style="display:flex; align-items:center; gap:8px;">
-
-        <button
-            type="button"
-            class="music-manage-btn"
-            onclick="createPlaylistFromUI()"
-        >
-            New Playlist
-        </button>
-
-        <button
-            type="button"
-            class="playlist-manager-close"
-            onclick="closePlaylistManager()"
-            aria-label="Close playlist manager"
-        >
-            ×
-        </button>
-
-    </div>
-
-</div>
-
-
-<div id="playlist-manager-list-view">
-
-    <div
-        id="playlist-manager-list"
-        class="playlist-manager-list"
-    >
-        <div class="playlist-manager-empty">
-            Loading playlists...
-        </div>
-    </div>
-
-</div>
-
-
-<div
-    id="playlist-manager-tracks-view"
-    class="hidden"
->
-
-    <div class="playlist-tracks-header">
-
-        <button
-            type="button"
-            class="playlist-manager-action-btn"
-            onclick="closePlaylistTracksView()"
-        >
-            Back
-        </button>
 
         <div
-            id="playlist-tracks-title"
-            class="playlist-tracks-title"
+            id="playlist-manager-tracks-view"
+            class="hidden"
         >
-            Playlist
+
+            <div class="playlist-tracks-header">
+
+                <button
+                    type="button"
+                    class="playlist-manager-action-btn"
+                    onclick="closePlaylistTracksView()"
+                >
+                    Back
+                </button>
+
+
+                <div
+                    id="playlist-tracks-title"
+                    class="playlist-tracks-title"
+                >
+                    Playlist
+                </div>
+
+            </div>
+
+
+            <div
+                id="playlist-tracks-list"
+                class="playlist-tracks-list"
+            ></div>
+
         </div>
-
-    </div>
-
-
-    <div
-        id="playlist-tracks-list"
-        class="playlist-tracks-list"
-    >
-    </div>
-
-</div>
 
     </div>
 
