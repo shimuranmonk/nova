@@ -14,6 +14,9 @@ import {
 import { showToast } from './utils.js';
 
 
+let activePlaylistId = null;
+
+
 /*
  * playlist manager UI stuff lives here.
  * storage logic stays sa playlist.js para dili mag sagol tanan.
@@ -27,7 +30,11 @@ export async function openPlaylistManager() {
         return;
     }
 
+    activePlaylistId = null;
+
     modal.classList.add('open');
+
+    showPlaylistListView();
 
     await refreshPlaylistManager();
 }
@@ -39,6 +46,8 @@ export function closePlaylistManager() {
     if (modal) {
         modal.classList.remove('open');
     }
+
+    activePlaylistId = null;
 }
 
 
@@ -75,12 +84,16 @@ export async function refreshPlaylistManager() {
             const row = document.createElement('div');
             row.className = 'playlist-manager-row';
 
+
             const info = document.createElement('div');
-            info.className = 'playlist-manager-row-info';
+            info.className =
+                'playlist-manager-row-info playlist-manager-row-clickable';
+
 
             const name = document.createElement('div');
             name.className = 'playlist-manager-row-name';
             name.textContent = playlist.name;
+
 
             const meta = document.createElement('div');
             meta.className = 'playlist-manager-row-meta';
@@ -91,18 +104,26 @@ export async function refreshPlaylistManager() {
             meta.textContent =
                 `${trackText} • ${formatPlaylistDuration(totalDuration)}`;
 
+
             info.appendChild(name);
             info.appendChild(meta);
+
+
+            /*
+             * tap playlist info para makita ang tracks sulod.
+             */
+            info.addEventListener('click', async () => {
+                await openPlaylistTracksView(
+                    playlist.id,
+                    playlist.name
+                );
+            });
 
 
             const actions = document.createElement('div');
             actions.className = 'playlist-manager-row-actions';
 
 
-            /*
-             * songs button. file picker is made only when needed,
-             * wala nay permanent hidden input sa index.html.
-             */
             const addSongsBtn = document.createElement('button');
 
             addSongsBtn.type = 'button';
@@ -166,9 +187,6 @@ export async function refreshPlaylistManager() {
 }
 
 
-/*
- * simple create flow lang sa 8B.
- */
 export async function createPlaylistFromUI() {
     const rawName = window.prompt('New playlist name');
 
@@ -193,9 +211,6 @@ export async function createPlaylistFromUI() {
 }
 
 
-/*
- * name changes, id stays the same.
- */
 export async function renamePlaylistFromUI(
     playlistId,
     currentName
@@ -229,10 +244,6 @@ export async function renamePlaylistFromUI(
 }
 
 
-/*
- * playlist record lang ang i-delete diri.
- * tracks stay sa DB kay pwede shared sa lain playlist.
- */
 export async function deletePlaylistFromUI(
     playlistId,
     playlistName
@@ -258,8 +269,132 @@ export async function deletePlaylistFromUI(
 
 
 /*
- * Step 8E.
- *
+ * open track list for one playlist.
+ * display ra sa 8F, wala pa remove/reorder.
+ */
+async function openPlaylistTracksView(
+    playlistId,
+    playlistName
+) {
+    activePlaylistId = playlistId;
+
+    const listView =
+        document.getElementById('playlist-manager-list-view');
+
+    const tracksView =
+        document.getElementById('playlist-manager-tracks-view');
+
+    const title =
+        document.getElementById('playlist-tracks-title');
+
+    const list =
+        document.getElementById('playlist-tracks-list');
+
+
+    if (!listView || !tracksView || !title || !list) {
+        console.error('Playlist track view not found');
+        return;
+    }
+
+
+    listView.classList.add('hidden');
+    tracksView.classList.remove('hidden');
+
+    title.textContent = playlistName;
+
+    list.innerHTML =
+        '<div class="playlist-manager-empty">Loading tracks...</div>';
+
+
+    try {
+        const tracks = await getPlaylistTracks(playlistId);
+
+        if (!tracks.length) {
+            list.innerHTML =
+                '<div class="playlist-manager-empty">No songs in this playlist</div>';
+            return;
+        }
+
+
+        list.innerHTML = '';
+
+
+        tracks.forEach((track, index) => {
+            const row = document.createElement('div');
+            row.className = 'playlist-track-row';
+
+
+            const number = document.createElement('div');
+            number.className = 'playlist-track-number';
+            number.textContent = String(index + 1);
+
+
+            const info = document.createElement('div');
+            info.className = 'playlist-track-info';
+
+
+            const name = document.createElement('div');
+            name.className = 'playlist-track-name';
+
+            name.textContent =
+                track.displayName ||
+                track.filename ||
+                'Unknown Track';
+
+
+            const meta = document.createElement('div');
+            meta.className = 'playlist-track-meta';
+
+            meta.textContent =
+                formatPlaylistDuration(track.duration || 0);
+
+
+            info.appendChild(name);
+            info.appendChild(meta);
+
+            row.appendChild(number);
+            row.appendChild(info);
+
+            list.appendChild(row);
+        });
+
+    } catch (error) {
+        console.error('Unable to load playlist tracks:', error);
+
+        list.innerHTML =
+            '<div class="playlist-manager-empty">Unable to load tracks</div>';
+    }
+}
+
+
+/*
+ * balik sa main playlist list.
+ */
+export function closePlaylistTracksView() {
+    activePlaylistId = null;
+
+    showPlaylistListView();
+}
+
+
+function showPlaylistListView() {
+    const listView =
+        document.getElementById('playlist-manager-list-view');
+
+    const tracksView =
+        document.getElementById('playlist-manager-tracks-view');
+
+    if (listView) {
+        listView.classList.remove('hidden');
+    }
+
+    if (tracksView) {
+        tracksView.classList.add('hidden');
+    }
+}
+
+
+/*
  * select one or more real audio files, save new tracks only once,
  * then add the stable track IDs to this playlist.
  */
@@ -289,10 +424,6 @@ async function addSongsToPlaylistFromUI(
                 let reusedCount = 0;
 
                 for (const file of files) {
-                    /*
-                     * duration first because old stored tracks from the
-                     * earlier tests may not have a hash yet.
-                     */
                     const duration = await getAudioDuration(file);
 
                     const hash = await makeFileHash(file);
@@ -301,11 +432,7 @@ async function addSongsToPlaylistFromUI(
 
 
                     /*
-                     * old tracks, like our Step 7D Beat It record,
-                     * were created before SHA-256 was added.
-                     *
-                     * try a careful legacy match first so dili ta mag
-                     * store another copy just because old record has no hash.
+                     * old records from before hash support.
                      */
                     if (!track) {
                         track = await findLegacyTrack(
@@ -342,10 +469,6 @@ async function addSongsToPlaylistFromUI(
                     }
 
 
-                    /*
-                     * addTrackToPlaylist already prevents the same
-                     * track ID from appearing twice in one playlist.
-                     */
                     const beforeTracks =
                         await getPlaylistTracks(playlistId);
 
@@ -354,10 +477,12 @@ async function addSongsToPlaylistFromUI(
                             item => item.id === track.id
                         );
 
+
                     await addTrackToPlaylist(
                         playlistId,
                         track.id
                     );
+
 
                     if (!alreadyThere) {
                         addedCount++;
@@ -367,6 +492,7 @@ async function addSongsToPlaylistFromUI(
 
                 await refreshPlaylistManager();
 
+
                 console.log(
                     `Playlist "${playlistName}" import:`,
                     {
@@ -375,6 +501,7 @@ async function addSongsToPlaylistFromUI(
                         reused: reusedCount
                     }
                 );
+
 
                 if (addedCount > 0) {
                     showToast(
@@ -401,10 +528,6 @@ async function addSongsToPlaylistFromUI(
 }
 
 
-/*
- * hash the actual file contents.
- * filename can change, hash stays tied to the audio file itself.
- */
 async function makeFileHash(file) {
     const buffer = await file.arrayBuffer();
 
@@ -422,12 +545,6 @@ async function makeFileHash(file) {
 }
 
 
-/*
- * old records from before hash support need a fallback match.
- *
- * filename + size + type + duration is strong enough for migration
- * purposes, then we backfill the real SHA-256 into metadata.
- */
 async function findLegacyTrack(
     file,
     duration
@@ -469,10 +586,6 @@ async function findLegacyTrack(
 }
 
 
-/*
- * duration helper. object URL is temporary lang,
- * revoke afterwards para walay blob URL nga magsige ug bilin.
- */
 async function getAudioDuration(file) {
     const audio = new Audio();
     const url = URL.createObjectURL(file);
@@ -491,6 +604,7 @@ async function getAudioDuration(file) {
                 { once: true }
             );
 
+
             audio.addEventListener(
                 'error',
                 () => {
@@ -501,6 +615,7 @@ async function getAudioDuration(file) {
                 },
                 { once: true }
             );
+
 
             audio.src = url;
             audio.load();
