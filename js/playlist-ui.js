@@ -8,6 +8,7 @@ import {
     saveTrack,
     addTrackToPlaylist,
     removeTrackFromPlaylist,
+    moveTrackInPlaylist,
     getAllTracks,
     findTrackByHash
 } from './playlist.js';
@@ -90,6 +91,7 @@ export async function refreshPlaylistManager() {
 
 
             const info = document.createElement('div');
+
             info.className =
                 'playlist-manager-row-info playlist-manager-row-clickable';
 
@@ -113,6 +115,9 @@ export async function refreshPlaylistManager() {
             info.appendChild(meta);
 
 
+            /*
+             * tap playlist info para makita ang tracks sulod.
+             */
             info.addEventListener('click', async () => {
                 await openPlaylistTracksView(
                     playlist.id,
@@ -156,6 +161,7 @@ export async function refreshPlaylistManager() {
             const deleteBtn = document.createElement('button');
 
             deleteBtn.type = 'button';
+
             deleteBtn.className =
                 'playlist-manager-action-btn playlist-manager-delete-btn';
 
@@ -180,7 +186,10 @@ export async function refreshPlaylistManager() {
         }
 
     } catch (error) {
-        console.error('Unable to load playlist manager:', error);
+        console.error(
+            'Unable to load playlist manager:',
+            error
+        );
 
         list.innerHTML =
             '<div class="playlist-manager-empty">Unable to load playlists</div>';
@@ -188,6 +197,9 @@ export async function refreshPlaylistManager() {
 }
 
 
+/*
+ * simple create flow lang sa karon.
+ */
 export async function createPlaylistFromUI() {
     const rawName = window.prompt('New playlist name');
 
@@ -207,11 +219,18 @@ export async function createPlaylistFromUI() {
         await refreshPlaylistManager();
 
     } catch (error) {
-        console.error('Unable to create playlist:', error);
+        console.error(
+            'Unable to create playlist:',
+            error
+        );
     }
 }
 
 
+/*
+ * name ra ang mausab.
+ * playlist id stays the same.
+ */
 export async function renamePlaylistFromUI(
     playlistId,
     currentName
@@ -240,11 +259,18 @@ export async function renamePlaylistFromUI(
         await refreshPlaylistManager();
 
     } catch (error) {
-        console.error('Unable to rename playlist:', error);
+        console.error(
+            'Unable to rename playlist:',
+            error
+        );
     }
 }
 
 
+/*
+ * playlist record lang ang delete.
+ * actual tracks/audio stay sa DB.
+ */
 export async function deletePlaylistFromUI(
     playlistId,
     playlistName
@@ -264,14 +290,18 @@ export async function deletePlaylistFromUI(
         await refreshPlaylistManager();
 
     } catch (error) {
-        console.error('Unable to delete playlist:', error);
+        console.error(
+            'Unable to delete playlist:',
+            error
+        );
     }
 }
 
 
 /*
  * track view.
- * 8G adds remove from playlist only, dili delete sa actual audio.
+ * 8G = remove membership
+ * 8H = reorder
  */
 async function openPlaylistTracksView(
     playlistId,
@@ -348,7 +378,9 @@ async function openPlaylistTracksView(
             meta.className = 'playlist-track-meta';
 
             meta.textContent =
-                formatPlaylistDuration(track.duration || 0);
+                formatPlaylistDuration(
+                    track.duration || 0
+                );
 
 
             info.appendChild(name);
@@ -356,12 +388,74 @@ async function openPlaylistTracksView(
 
 
             /*
+             * reorder controls.
+             * stable track id stays untouched, order ra ang mausab.
+             */
+            const moveActions =
+                document.createElement('div');
+
+            moveActions.className =
+                'playlist-track-move-actions';
+
+
+            const upBtn =
+                document.createElement('button');
+
+            upBtn.type = 'button';
+
+            upBtn.className =
+                'playlist-manager-action-btn playlist-track-move-btn';
+
+            upBtn.textContent = '↑';
+            upBtn.title = 'Move up';
+
+            upBtn.disabled = index === 0;
+
+            upBtn.addEventListener('click', async () => {
+                await moveTrackFromUI(
+                    playlistId,
+                    track.id,
+                    -1
+                );
+            });
+
+
+            const downBtn =
+                document.createElement('button');
+
+            downBtn.type = 'button';
+
+            downBtn.className =
+                'playlist-manager-action-btn playlist-track-move-btn';
+
+            downBtn.textContent = '↓';
+            downBtn.title = 'Move down';
+
+            downBtn.disabled =
+                index === tracks.length - 1;
+
+            downBtn.addEventListener('click', async () => {
+                await moveTrackFromUI(
+                    playlistId,
+                    track.id,
+                    1
+                );
+            });
+
+
+            moveActions.appendChild(upBtn);
+            moveActions.appendChild(downBtn);
+
+
+            /*
              * membership lang ang tangtangon.
              * actual track/blob stays sa tracks store.
              */
-            const removeBtn = document.createElement('button');
+            const removeBtn =
+                document.createElement('button');
 
             removeBtn.type = 'button';
+
             removeBtn.className =
                 'playlist-manager-action-btn playlist-track-remove-btn';
 
@@ -378,13 +472,17 @@ async function openPlaylistTracksView(
 
             row.appendChild(number);
             row.appendChild(info);
+            row.appendChild(moveActions);
             row.appendChild(removeBtn);
 
             list.appendChild(row);
         });
 
     } catch (error) {
-        console.error('Unable to load playlist tracks:', error);
+        console.error(
+            'Unable to load playlist tracks:',
+            error
+        );
 
         list.innerHTML =
             '<div class="playlist-manager-empty">Unable to load tracks</div>';
@@ -393,7 +491,38 @@ async function openPlaylistTracksView(
 
 
 /*
- * remove from this playlist only.
+ * move up/down then redraw.
+ */
+async function moveTrackFromUI(
+    playlistId,
+    trackId,
+    direction
+) {
+    try {
+        await moveTrackInPlaylist(
+            playlistId,
+            trackId,
+            direction
+        );
+
+        await openPlaylistTracksView(
+            playlistId,
+            activePlaylistName
+        );
+
+    } catch (error) {
+        console.error(
+            'Unable to reorder playlist track:',
+            error
+        );
+
+        showToast('Unable to move song');
+    }
+}
+
+
+/*
+ * remove from playlist only.
  * track id/blob stays untouched sa DB.
  */
 async function removeTrackFromPlaylistFromUI(
@@ -465,8 +594,8 @@ function showPlaylistListView() {
 
 
 /*
- * select one or more real audio files, save new tracks only once,
- * then add the stable track IDs to this playlist.
+ * select one or more real audio files.
+ * new audio gets stored once, existing hash gets reused.
  */
 async function addSongsToPlaylistFromUI(
     playlistId,
@@ -481,7 +610,8 @@ async function addSongsToPlaylistFromUI(
     input.addEventListener(
         'change',
         async () => {
-            const files = Array.from(input.files || []);
+            const files =
+                Array.from(input.files || []);
 
             if (!files.length) {
                 return;
@@ -494,21 +624,26 @@ async function addSongsToPlaylistFromUI(
                 let reusedCount = 0;
 
                 for (const file of files) {
-                    const duration = await getAudioDuration(file);
+                    const duration =
+                        await getAudioDuration(file);
 
-                    const hash = await makeFileHash(file);
+                    const hash =
+                        await makeFileHash(file);
 
-                    let track = await findTrackByHash(hash);
+                    let track =
+                        await findTrackByHash(hash);
 
 
                     /*
-                     * old records from before hash support.
+                     * old tracks from before hash support.
+                     * kung match, backfill sha256.
                      */
                     if (!track) {
-                        track = await findLegacyTrack(
-                            file,
-                            duration
-                        );
+                        track =
+                            await findLegacyTrack(
+                                file,
+                                duration
+                            );
 
                         if (track) {
                             track.metadata = {
@@ -525,10 +660,11 @@ async function addSongsToPlaylistFromUI(
                         reusedCount++;
                     }
                     else {
-                        track = createTrackRecord(
-                            file,
-                            duration
-                        );
+                        track =
+                            createTrackRecord(
+                                file,
+                                duration
+                            );
 
                         track.metadata = {
                             ...(track.metadata || {}),
@@ -540,7 +676,9 @@ async function addSongsToPlaylistFromUI(
 
 
                     const beforeTracks =
-                        await getPlaylistTracks(playlistId);
+                        await getPlaylistTracks(
+                            playlistId
+                        );
 
                     const alreadyThere =
                         beforeTracks.some(
@@ -579,7 +717,9 @@ async function addSongsToPlaylistFromUI(
                     );
                 }
                 else {
-                    showToast('Songs already in playlist');
+                    showToast(
+                        'Songs already in playlist'
+                    );
                 }
 
             } catch (error) {
@@ -588,7 +728,9 @@ async function addSongsToPlaylistFromUI(
                     error
                 );
 
-                showToast('Unable to add music');
+                showToast(
+                    'Unable to add music'
+                );
             }
         },
         { once: true }
@@ -598,28 +740,42 @@ async function addSongsToPlaylistFromUI(
 }
 
 
+/*
+ * hash the actual file contents.
+ */
 async function makeFileHash(file) {
-    const buffer = await file.arrayBuffer();
+    const buffer =
+        await file.arrayBuffer();
 
-    const digest = await crypto.subtle.digest(
-        'SHA-256',
-        buffer
-    );
+    const digest =
+        await crypto.subtle.digest(
+            'SHA-256',
+            buffer
+        );
 
     return Array
-        .from(new Uint8Array(digest))
-        .map(byte =>
-            byte.toString(16).padStart(2, '0')
+        .from(
+            new Uint8Array(digest)
+        )
+        .map(
+            byte =>
+                byte
+                    .toString(16)
+                    .padStart(2, '0')
         )
         .join('');
 }
 
 
+/*
+ * fallback para old records nga wala pay hash.
+ */
 async function findLegacyTrack(
     file,
     duration
 ) {
-    const tracks = await getAllTracks();
+    const tracks =
+        await getAllTracks();
 
     return tracks.find(track => {
         if (track?.metadata?.sha256) {
@@ -630,7 +786,8 @@ async function findLegacyTrack(
             track.filename === file.name;
 
         const sameSize =
-            Number(track.size) === Number(file.size);
+            Number(track.size) ===
+            Number(file.size);
 
         const sameType =
             !track.type ||
@@ -644,7 +801,9 @@ async function findLegacyTrack(
             Number(duration) || 0;
 
         const sameDuration =
-            Math.abs(oldDuration - newDuration) < 0.5;
+            Math.abs(
+                oldDuration - newDuration
+            ) < 0.5;
 
         return (
             sameFilename &&
@@ -656,40 +815,51 @@ async function findLegacyTrack(
 }
 
 
+/*
+ * get actual duration from selected file.
+ */
 async function getAudioDuration(file) {
     const audio = new Audio();
-    const url = URL.createObjectURL(file);
+
+    const url =
+        URL.createObjectURL(file);
 
     try {
-        return await new Promise((resolve, reject) => {
-            audio.addEventListener(
-                'loadedmetadata',
-                () => {
-                    resolve(
-                        Number.isFinite(audio.duration)
-                            ? audio.duration
-                            : 0
-                    );
-                },
-                { once: true }
-            );
+        return await new Promise(
+            (resolve, reject) => {
+                audio.addEventListener(
+                    'loadedmetadata',
+                    () => {
+                        resolve(
+                            Number.isFinite(
+                                audio.duration
+                            )
+                                ? audio.duration
+                                : 0
+                        );
+                    },
+                    { once: true }
+                );
 
 
-            audio.addEventListener(
-                'error',
-                () => {
-                    reject(
-                        audio.error ||
-                        new Error('Unable to read audio metadata')
-                    );
-                },
-                { once: true }
-            );
+                audio.addEventListener(
+                    'error',
+                    () => {
+                        reject(
+                            audio.error ||
+                            new Error(
+                                'Unable to read audio metadata'
+                            )
+                        );
+                    },
+                    { once: true }
+                );
 
 
-            audio.src = url;
-            audio.load();
-        });
+                audio.src = url;
+                audio.load();
+            }
+        );
 
     } finally {
         audio.removeAttribute('src');
@@ -701,14 +871,29 @@ async function getAudioDuration(file) {
 
 
 function formatPlaylistDuration(seconds) {
-    if (!Number.isFinite(seconds) || seconds <= 0) {
+    if (
+        !Number.isFinite(seconds) ||
+        seconds <= 0
+    ) {
         return '0:00';
     }
 
-    const totalSeconds = Math.round(seconds);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const secs = totalSeconds % 60;
+    const totalSeconds =
+        Math.round(seconds);
+
+    const hours =
+        Math.floor(
+            totalSeconds / 3600
+        );
+
+    const minutes =
+        Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+    const secs =
+        totalSeconds % 60;
+
 
     if (hours > 0) {
         return `${hours}:${minutes
@@ -717,6 +902,7 @@ function formatPlaylistDuration(seconds) {
             .toString()
             .padStart(2, '0')}`;
     }
+
 
     return `${minutes}:${secs
         .toString()
