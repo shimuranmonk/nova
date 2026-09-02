@@ -110,6 +110,67 @@ export async function loadPlaylist(fileList) {
     return getPlaylistInfo();
 }
 
+/*
+ * Load tracks that were already saved in IndexedDB.
+ *
+ * This keeps the existing playback engine unchanged.
+ * Ang difference lang: instead of File objects from the picker,
+ * ang source diri kay audioBlob gikan sa stored track record.
+ *
+ * Keep the stable track ID.
+ * Future MSYNC will need this to know exactly which song is playing.
+ */
+export function loadStoredPlaylist(storedTracks) {
+    audio.pause();
+    stopProgressUpdates();
+
+    // Old object URL is no longer needed when switching playlists.
+    revokeCurrentUrl();
+    audio.removeAttribute('src');
+
+    const tracks = Array.isArray(storedTracks)
+        ? storedTracks
+        : [];
+
+    playlist = tracks
+        .filter(track => track && track.audioBlob)
+        .map(track => ({
+            // Stable internal identity from Playlist Manager.
+            id: track.id,
+
+            // music.js already expects something Blob/File-like here.
+            file: track.audioBlob,
+
+            // User-visible name can change without affecting identity.
+            name:
+                track.displayName ||
+                track.filename ||
+                'Unknown Track',
+
+            duration:
+                Number.isFinite(track.duration)
+                    ? track.duration
+                    : 0,
+
+            // Stored audio is usable as long as the Blob exists.
+            playable: true
+        }));
+
+    currentTrackIndex = 0;
+
+    // Prepare the first stored track now.
+    // Same idea as the normal file-picker playlist.
+    const firstPlayableIndex = playlist.findIndex(
+        track => track.playable
+    );
+
+    if (firstPlayableIndex >= 0) {
+        currentTrackIndex = firstPlayableIndex;
+        loadCurrentTrack();
+    }
+
+    return getPlaylistInfo();
+}
 
 function loadCurrentTrack() {
     if (!playlist.length) {
