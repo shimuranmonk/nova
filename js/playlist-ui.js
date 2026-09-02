@@ -1,6 +1,7 @@
 import {
     getAllPlaylists,
-    getPlaylistTracks
+    getPlaylistTracks,
+    createPlaylist
 } from './playlist.js';
 
 
@@ -34,7 +35,6 @@ export function closePlaylistManager() {
 
 /*
  * reload playlist list from IndexedDB.
- * for now display ra gyud ni, wala pa edit/delete etc.
  */
 export async function refreshPlaylistManager() {
     const list = document.getElementById('playlist-manager-list');
@@ -94,6 +94,34 @@ export async function refreshPlaylistManager() {
 
         list.innerHTML =
             '<div class="playlist-manager-empty">Unable to load playlists</div>';
+    }
+}
+
+
+/*
+ * simple create flow lang sa 8B.
+ * prompt sa karon, proper editor later kung kinahanglan.
+ */
+export async function createPlaylistFromUI() {
+    const rawName = window.prompt('New playlist name');
+
+    if (rawName === null) {
+        return;
+    }
+
+    const name = rawName.trim();
+
+    if (!name) {
+        return;
+    }
+
+    try {
+        await createPlaylist(name);
+
+        await refreshPlaylistManager();
+
+    } catch (error) {
+        console.error('Unable to create playlist:', error);
     }
 }
 
