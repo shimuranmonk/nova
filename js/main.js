@@ -43,7 +43,8 @@ import {
     openPlaylistManager,
     closePlaylistManager,
     createPlaylistFromUI,
-    renamePlaylistFromUI
+    renamePlaylistFromUI,
+    closePlaylistTracksView
 } from './playlist-ui.js';
 
 import {
@@ -226,6 +227,7 @@ window.createPlaylistFromUI = createPlaylistFromUI;
 window.openPlaylistManager = openPlaylistManager;
 window.closePlaylistManager = closePlaylistManager;
 window.renamePlaylistFromUI = renamePlaylistFromUI;
+window.closePlaylistTracksView = closePlaylistTracksView;
 
 window.setLevel = (lvl, btn) => {
     setLevel(lvl);
