@@ -141,8 +141,7 @@ if (inputMusic) {
             showToast('Unable to load music');
         }
     };
-}
-  
+
 // ###############################################  
     // STEP 7D TEMP TEST GOES HERE
     const testRealTrack = document.getElementById('test-real-track');
@@ -210,9 +209,11 @@ if (inputMusic) {
 
 
 // ###############################################  
+
+    
+}
   
-  
-  
+
   
     // --- NEW: Tap to Skip Countdown ---
     const runDisplay = document.getElementById('run-display');
