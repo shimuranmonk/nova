@@ -144,16 +144,6 @@ if (inputMusic) {
 }
   
 // ###############################################  
-  
-function setupEventListeners() {
-    // existing handlers here
-
-    const inputMusic = document.getElementById('input-music');
-
-    if (inputMusic) {
-        // existing Music code
-    }
-
     // STEP 7D TEMP TEST GOES HERE
     const testRealTrack = document.getElementById('test-real-track');
 
