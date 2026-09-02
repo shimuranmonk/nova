@@ -1317,6 +1317,32 @@ input[type="number"]:disabled { opacity: 0.5; cursor: not-allowed; color: var(--
     color: var(--text-light);
 }
 
+.playlist-manager-row-actions {
+    display: flex;
+    align-items: center;
+
+    margin-left: 12px;
+}
+
+.playlist-manager-action-btn {
+    min-height: 34px;
+    padding: 6px 10px;
+
+    border: 1px solid var(--border);
+    border-radius: 9px;
+
+    background: transparent;
+    color: var(--text);
+
+    font-size: 0.78rem;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.playlist-manager-action-btn:active {
+    transform: scale(0.97);
+}
 
 @media (max-width: 600px) {
 
