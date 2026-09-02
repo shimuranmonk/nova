@@ -412,3 +412,81 @@ export async function deletePlaylist(id) {
         };
     });
 }
+
+/*
+ * Add one track ID to a playlist.
+ *
+ * Track order is simply the order inside trackIds[].
+ * Track identity stays separate from playlist position.
+ */
+export async function addTrackToPlaylist(playlistId, trackId) {
+    const playlist = await getPlaylist(playlistId);
+
+    if (!playlist) {
+        throw new Error('Playlist not found');
+    }
+
+    if (!trackId) {
+        throw new Error('Track ID is required');
+    }
+
+    // Prevent accidental duplicate references for now.
+    // We can allow duplicates later if we ever need that behavior.
+    if (!playlist.trackIds.includes(trackId)) {
+        playlist.trackIds.push(trackId);
+    }
+
+    playlist.updatedAt = Date.now();
+
+    return savePlaylist(playlist);
+}
+
+
+/*
+ * Remove one track reference from a playlist.
+ *
+ * Important:
+ * This does NOT delete the actual track/audio from IndexedDB.
+ */
+export async function removeTrackFromPlaylist(playlistId, trackId) {
+    const playlist = await getPlaylist(playlistId);
+
+    if (!playlist) {
+        throw new Error('Playlist not found');
+    }
+
+    playlist.trackIds = playlist.trackIds.filter(
+        id => id !== trackId
+    );
+
+    playlist.updatedAt = Date.now();
+
+    return savePlaylist(playlist);
+}
+
+
+/*
+ * Load all track records for a playlist in playlist order.
+ *
+ * Missing/deleted track records are skipped.
+ * This keeps one bad reference from breaking the whole playlist.
+ */
+export async function getPlaylistTracks(playlistId) {
+    const playlist = await getPlaylist(playlistId);
+
+    if (!playlist) {
+        throw new Error('Playlist not found');
+    }
+
+    const tracks = [];
+
+    for (const trackId of playlist.trackIds) {
+        const track = await getTrack(trackId);
+
+        if (track) {
+            tracks.push(track);
+        }
+    }
+
+    return tracks;
+}
