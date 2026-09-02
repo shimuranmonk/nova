@@ -1,6 +1,7 @@
 const DB_NAME = 'nova_music';
 const DB_VERSION = 1;
 const TRACK_SCHEMA_VERSION = 1;
+const PLAYLIST_SCHEMA_VERSION = 1;
 
 const TRACK_STORE = 'tracks';
 const PLAYLIST_STORE = 'playlists';
@@ -235,6 +236,7 @@ export async function createPlaylist(name) {
 
     const playlist = {
         id: makeId(),
+        schemaVersion: PLAYLIST_SCHEMA_VERSION,
         name: cleanName,
 
         // Order matters here.
@@ -243,7 +245,11 @@ export async function createPlaylist(name) {
         trackIds: [],
 
         createdAt: now,
-        updatedAt: now
+        updatedAt: now,
+
+        // Reserved playlist/session extension area.
+        // Track synchronization cues do not live here.
+        metadata: {}
     };
 
     await savePlaylist(playlist);
@@ -268,10 +274,17 @@ export async function savePlaylist(playlist) {
     // without the basic fields we depend on.
     const record = {
         ...playlist,
+        schemaVersion:
+            playlist.schemaVersion || PLAYLIST_SCHEMA_VERSION,
         trackIds: Array.isArray(playlist.trackIds)
             ? playlist.trackIds
             : [],
-        updatedAt: playlist.updatedAt || Date.now()
+        metadata:
+            playlist.metadata &&
+            typeof playlist.metadata === 'object'
+                ? playlist.metadata
+                : {},
+        updatedAt: Date.now()
     };
 
     return new Promise((resolve, reject) => {
