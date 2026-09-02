@@ -7,6 +7,7 @@ import {
     createTrackRecord,
     saveTrack,
     addTrackToPlaylist,
+    removeTrackFromPlaylist,
     getAllTracks,
     findTrackByHash
 } from './playlist.js';
@@ -15,6 +16,7 @@ import { showToast } from './utils.js';
 
 
 let activePlaylistId = null;
+let activePlaylistName = '';
 
 
 /*
@@ -31,6 +33,7 @@ export async function openPlaylistManager() {
     }
 
     activePlaylistId = null;
+    activePlaylistName = '';
 
     modal.classList.add('open');
 
@@ -48,6 +51,7 @@ export function closePlaylistManager() {
     }
 
     activePlaylistId = null;
+    activePlaylistName = '';
 }
 
 
@@ -109,9 +113,6 @@ export async function refreshPlaylistManager() {
             info.appendChild(meta);
 
 
-            /*
-             * tap playlist info para makita ang tracks sulod.
-             */
             info.addEventListener('click', async () => {
                 await openPlaylistTracksView(
                     playlist.id,
@@ -269,14 +270,15 @@ export async function deletePlaylistFromUI(
 
 
 /*
- * open track list for one playlist.
- * display ra sa 8F, wala pa remove/reorder.
+ * track view.
+ * 8G adds remove from playlist only, dili delete sa actual audio.
  */
 async function openPlaylistTracksView(
     playlistId,
     playlistName
 ) {
     activePlaylistId = playlistId;
+    activePlaylistName = playlistName;
 
     const listView =
         document.getElementById('playlist-manager-list-view');
@@ -352,8 +354,31 @@ async function openPlaylistTracksView(
             info.appendChild(name);
             info.appendChild(meta);
 
+
+            /*
+             * membership lang ang tangtangon.
+             * actual track/blob stays sa tracks store.
+             */
+            const removeBtn = document.createElement('button');
+
+            removeBtn.type = 'button';
+            removeBtn.className =
+                'playlist-manager-action-btn playlist-track-remove-btn';
+
+            removeBtn.textContent = 'Remove';
+
+            removeBtn.addEventListener('click', async () => {
+                await removeTrackFromPlaylistFromUI(
+                    playlistId,
+                    track.id,
+                    name.textContent
+                );
+            });
+
+
             row.appendChild(number);
             row.appendChild(info);
+            row.appendChild(removeBtn);
 
             list.appendChild(row);
         });
@@ -368,10 +393,55 @@ async function openPlaylistTracksView(
 
 
 /*
+ * remove from this playlist only.
+ * track id/blob stays untouched sa DB.
+ */
+async function removeTrackFromPlaylistFromUI(
+    playlistId,
+    trackId,
+    trackName
+) {
+    const confirmed = window.confirm(
+        `Remove "${trackName}" from this playlist?\n\n` +
+        'The saved audio file will not be deleted.'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        await removeTrackFromPlaylist(
+            playlistId,
+            trackId
+        );
+
+        await openPlaylistTracksView(
+            playlistId,
+            activePlaylistName
+        );
+
+        await refreshPlaylistManager();
+
+        showToast('Song removed from playlist');
+
+    } catch (error) {
+        console.error(
+            'Unable to remove track from playlist:',
+            error
+        );
+
+        showToast('Unable to remove song');
+    }
+}
+
+
+/*
  * balik sa main playlist list.
  */
 export function closePlaylistTracksView() {
     activePlaylistId = null;
+    activePlaylistName = '';
 
     showPlaylistListView();
 }
