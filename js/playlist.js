@@ -1,5 +1,6 @@
 const DB_NAME = 'nova_music';
 const DB_VERSION = 1;
+const TRACK_SCHEMA_VERSION = 1;
 
 const TRACK_STORE = 'tracks';
 const PLAYLIST_STORE = 'playlists';
@@ -102,8 +103,11 @@ export function createTrackRecord(file, duration = 0) {
         throw new Error('Audio file is required');
     }
 
+    const now = Date.now();
+
     return {
         id: makeId(),
+        schemaVersion: TRACK_SCHEMA_VERSION,
 
         filename: file.name,
         displayName: file.name,
@@ -114,7 +118,8 @@ export function createTrackRecord(file, duration = 0) {
 
         audioBlob: file,
 
-        createdAt: Date.now(),
+        createdAt: now,
+        updatedAt: now,
 
         // Reserved extension area.
         // Ayaw tanggalon. Future MSYNC lives around here.
@@ -137,6 +142,24 @@ export async function saveTrack(track) {
 
     const db = await openPlaylistDatabase();
 
+    /*
+     * Track v1 contract:
+     * - keep the stable ID supplied by the caller
+     * - preserve all known and future fields
+     * - normalize the extension area for legacy records
+     * - mark every stored update
+     */
+    const record = {
+        ...track,
+        schemaVersion:
+            track.schemaVersion || TRACK_SCHEMA_VERSION,
+        metadata:
+            track.metadata && typeof track.metadata === 'object'
+                ? track.metadata
+                : {},
+        updatedAt: Date.now()
+    };
+
     return new Promise((resolve, reject) => {
         const transaction = db.transaction(
             TRACK_STORE,
@@ -144,10 +167,10 @@ export async function saveTrack(track) {
         );
 
         const store = transaction.objectStore(TRACK_STORE);
-        const request = store.put(track);
+        const request = store.put(record);
 
         request.onsuccess = () => {
-            resolve(track);
+            resolve(record);
         };
 
         request.onerror = () => {
