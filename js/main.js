@@ -41,7 +41,8 @@ import { showToast } from './utils.js';
 
 import {
     openPlaylistManager,
-    closePlaylistManager
+    closePlaylistManager,
+    createPlaylistFromUI
 } from './playlist-ui.js';
 
 import {
@@ -220,6 +221,7 @@ window.toggleMenu = toggleMenu;
 window.setTheme = setTheme;
 window.switchTab = switchTab;
 
+window.createPlaylistFromUI = createPlaylistFromUI;
 window.openPlaylistManager = openPlaylistManager;
 window.closePlaylistManager = closePlaylistManager;
 
