@@ -1323,16 +1323,52 @@
 </div>
 
 
-        <div
-            id="playlist-manager-list"
-            class="playlist-manager-list"
-        >
+<div id="playlist-manager-list-view">
 
-            <div class="playlist-manager-empty">
-                Loading playlists...
-            </div>
-
+    <div
+        id="playlist-manager-list"
+        class="playlist-manager-list"
+    >
+        <div class="playlist-manager-empty">
+            Loading playlists...
         </div>
+    </div>
+
+</div>
+
+
+<div
+    id="playlist-manager-tracks-view"
+    class="hidden"
+>
+
+    <div class="playlist-tracks-header">
+
+        <button
+            type="button"
+            class="playlist-manager-action-btn"
+            onclick="closePlaylistTracksView()"
+        >
+            Back
+        </button>
+
+        <div
+            id="playlist-tracks-title"
+            class="playlist-tracks-title"
+        >
+            Playlist
+        </div>
+
+    </div>
+
+
+    <div
+        id="playlist-tracks-list"
+        class="playlist-tracks-list"
+    >
+    </div>
+
+</div>
 
     </div>
 
