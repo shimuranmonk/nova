@@ -3,8 +3,15 @@ import {
     getPlaylistTracks,
     createPlaylist,
     renamePlaylist,
-    deletePlaylist
+    deletePlaylist,
+    createTrackRecord,
+    saveTrack,
+    addTrackToPlaylist,
+    getAllTracks,
+    findTrackByHash
 } from './playlist.js';
+
+import { showToast } from './utils.js';
 
 
 /*
@@ -92,6 +99,24 @@ export async function refreshPlaylistManager() {
             actions.className = 'playlist-manager-row-actions';
 
 
+            /*
+             * songs button. file picker is made only when needed,
+             * wala nay permanent hidden input sa index.html.
+             */
+            const addSongsBtn = document.createElement('button');
+
+            addSongsBtn.type = 'button';
+            addSongsBtn.className = 'playlist-manager-action-btn';
+            addSongsBtn.textContent = 'Add Songs';
+
+            addSongsBtn.addEventListener('click', async () => {
+                await addSongsToPlaylistFromUI(
+                    playlist.id,
+                    playlist.name
+                );
+            });
+
+
             const renameBtn = document.createElement('button');
 
             renameBtn.type = 'button';
@@ -122,6 +147,7 @@ export async function refreshPlaylistManager() {
             });
 
 
+            actions.appendChild(addSongsBtn);
             actions.appendChild(renameBtn);
             actions.appendChild(deleteBtn);
 
@@ -142,7 +168,6 @@ export async function refreshPlaylistManager() {
 
 /*
  * simple create flow lang sa 8B.
- * prompt sa karon, proper editor later kung kinahanglan.
  */
 export async function createPlaylistFromUI() {
     const rawName = window.prompt('New playlist name');
@@ -169,7 +194,6 @@ export async function createPlaylistFromUI() {
 
 
 /*
- * rename lang.
  * name changes, id stays the same.
  */
 export async function renamePlaylistFromUI(
@@ -229,6 +253,264 @@ export async function deletePlaylistFromUI(
 
     } catch (error) {
         console.error('Unable to delete playlist:', error);
+    }
+}
+
+
+/*
+ * Step 8E.
+ *
+ * select one or more real audio files, save new tracks only once,
+ * then add the stable track IDs to this playlist.
+ */
+async function addSongsToPlaylistFromUI(
+    playlistId,
+    playlistName
+) {
+    const input = document.createElement('input');
+
+    input.type = 'file';
+    input.accept = 'audio/*';
+    input.multiple = true;
+
+    input.addEventListener(
+        'change',
+        async () => {
+            const files = Array.from(input.files || []);
+
+            if (!files.length) {
+                return;
+            }
+
+            try {
+                showToast('Adding music...');
+
+                let addedCount = 0;
+                let reusedCount = 0;
+
+                for (const file of files) {
+                    /*
+                     * duration first because old stored tracks from the
+                     * earlier tests may not have a hash yet.
+                     */
+                    const duration = await getAudioDuration(file);
+
+                    const hash = await makeFileHash(file);
+
+                    let track = await findTrackByHash(hash);
+
+
+                    /*
+                     * old tracks, like our Step 7D Beat It record,
+                     * were created before SHA-256 was added.
+                     *
+                     * try a careful legacy match first so dili ta mag
+                     * store another copy just because old record has no hash.
+                     */
+                    if (!track) {
+                        track = await findLegacyTrack(
+                            file,
+                            duration
+                        );
+
+                        if (track) {
+                            track.metadata = {
+                                ...(track.metadata || {}),
+                                sha256: hash
+                            };
+
+                            await saveTrack(track);
+                        }
+                    }
+
+
+                    if (track) {
+                        reusedCount++;
+                    }
+                    else {
+                        track = createTrackRecord(
+                            file,
+                            duration
+                        );
+
+                        track.metadata = {
+                            ...(track.metadata || {}),
+                            sha256: hash
+                        };
+
+                        await saveTrack(track);
+                    }
+
+
+                    /*
+                     * addTrackToPlaylist already prevents the same
+                     * track ID from appearing twice in one playlist.
+                     */
+                    const beforeTracks =
+                        await getPlaylistTracks(playlistId);
+
+                    const alreadyThere =
+                        beforeTracks.some(
+                            item => item.id === track.id
+                        );
+
+                    await addTrackToPlaylist(
+                        playlistId,
+                        track.id
+                    );
+
+                    if (!alreadyThere) {
+                        addedCount++;
+                    }
+                }
+
+
+                await refreshPlaylistManager();
+
+                console.log(
+                    `Playlist "${playlistName}" import:`,
+                    {
+                        selected: files.length,
+                        added: addedCount,
+                        reused: reusedCount
+                    }
+                );
+
+                if (addedCount > 0) {
+                    showToast(
+                        `${addedCount} song${addedCount === 1 ? '' : 's'} added`
+                    );
+                }
+                else {
+                    showToast('Songs already in playlist');
+                }
+
+            } catch (error) {
+                console.error(
+                    'Unable to add songs to playlist:',
+                    error
+                );
+
+                showToast('Unable to add music');
+            }
+        },
+        { once: true }
+    );
+
+    input.click();
+}
+
+
+/*
+ * hash the actual file contents.
+ * filename can change, hash stays tied to the audio file itself.
+ */
+async function makeFileHash(file) {
+    const buffer = await file.arrayBuffer();
+
+    const digest = await crypto.subtle.digest(
+        'SHA-256',
+        buffer
+    );
+
+    return Array
+        .from(new Uint8Array(digest))
+        .map(byte =>
+            byte.toString(16).padStart(2, '0')
+        )
+        .join('');
+}
+
+
+/*
+ * old records from before hash support need a fallback match.
+ *
+ * filename + size + type + duration is strong enough for migration
+ * purposes, then we backfill the real SHA-256 into metadata.
+ */
+async function findLegacyTrack(
+    file,
+    duration
+) {
+    const tracks = await getAllTracks();
+
+    return tracks.find(track => {
+        if (track?.metadata?.sha256) {
+            return false;
+        }
+
+        const sameFilename =
+            track.filename === file.name;
+
+        const sameSize =
+            Number(track.size) === Number(file.size);
+
+        const sameType =
+            !track.type ||
+            !file.type ||
+            track.type === file.type;
+
+        const oldDuration =
+            Number(track.duration) || 0;
+
+        const newDuration =
+            Number(duration) || 0;
+
+        const sameDuration =
+            Math.abs(oldDuration - newDuration) < 0.5;
+
+        return (
+            sameFilename &&
+            sameSize &&
+            sameType &&
+            sameDuration
+        );
+    }) || null;
+}
+
+
+/*
+ * duration helper. object URL is temporary lang,
+ * revoke afterwards para walay blob URL nga magsige ug bilin.
+ */
+async function getAudioDuration(file) {
+    const audio = new Audio();
+    const url = URL.createObjectURL(file);
+
+    try {
+        return await new Promise((resolve, reject) => {
+            audio.addEventListener(
+                'loadedmetadata',
+                () => {
+                    resolve(
+                        Number.isFinite(audio.duration)
+                            ? audio.duration
+                            : 0
+                    );
+                },
+                { once: true }
+            );
+
+            audio.addEventListener(
+                'error',
+                () => {
+                    reject(
+                        audio.error ||
+                        new Error('Unable to read audio metadata')
+                    );
+                },
+                { once: true }
+            );
+
+            audio.src = url;
+            audio.load();
+        });
+
+    } finally {
+        audio.removeAttribute('src');
+        audio.load();
+
+        URL.revokeObjectURL(url);
     }
 }
 
