@@ -46,6 +46,24 @@ import {
     skipCountdown // <--- ADDED IMPORT
 } from './runner.js';
 
+
+
+import {
+    createTrackRecord,
+    saveTrack,
+    createPlaylist,
+    addTrackToPlaylist,
+    getPlaylistTracks
+} from './playlist.js';
+
+import {
+    loadStoredPlaylist,
+    playMusic
+} from './music.js';
+
+
+
+
 import { downloadDrill } from './cloud.js';
 import { loadPlaylist } from './music.js';
 
@@ -124,6 +142,87 @@ if (inputMusic) {
         }
     };
 }
+  
+// ###############################################  
+  
+function setupEventListeners() {
+    // existing handlers here
+
+    const inputMusic = document.getElementById('input-music');
+
+    if (inputMusic) {
+        // existing Music code
+    }
+
+    // STEP 7D TEMP TEST GOES HERE
+    const testRealTrack = document.getElementById('test-real-track');
+
+    if (testRealTrack) {
+        testRealTrack.addEventListener('change', async (event) => {
+            const file = event.target.files?.[0];
+
+            if (!file) return;
+
+            try {
+                const audio = new Audio();
+                const url = URL.createObjectURL(file);
+
+                const duration = await new Promise((resolve) => {
+                    audio.addEventListener('loadedmetadata', () => {
+                        resolve(
+                            Number.isFinite(audio.duration)
+                                ? audio.duration
+                                : 0
+                        );
+                    }, { once: true });
+
+                    audio.src = url;
+                });
+
+                URL.revokeObjectURL(url);
+
+                const track = createTrackRecord(file, duration);
+
+                await saveTrack(track);
+
+                const playlist = await createPlaylist(
+                    'Step 7D Real Audio Test'
+                );
+
+                await addTrackToPlaylist(
+                    playlist.id,
+                    track.id
+                );
+
+                const storedTracks = await getPlaylistTracks(
+                    playlist.id
+                );
+
+                loadStoredPlaylist(storedTracks);
+
+                const played = await playMusic();
+
+                console.log(
+                    'Step 7D playback result:',
+                    played
+                );
+
+            } catch (error) {
+                console.error(
+                    'Step 7D test failed:',
+                    error
+                );
+            }
+        });
+    }
+}  
+
+
+
+// ###############################################  
+  
+  
+  
   
     // --- NEW: Tap to Skip Countdown ---
     const runDisplay = document.getElementById('run-display');
