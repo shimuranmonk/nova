@@ -2,7 +2,8 @@ import {
     getAllPlaylists,
     getPlaylistTracks,
     createPlaylist,
-    renamePlaylist
+    renamePlaylist,
+    deletePlaylist
 } from './playlist.js';
 
 
@@ -86,10 +87,13 @@ export async function refreshPlaylistManager() {
             info.appendChild(name);
             info.appendChild(meta);
 
+
             const actions = document.createElement('div');
             actions.className = 'playlist-manager-row-actions';
 
+
             const renameBtn = document.createElement('button');
+
             renameBtn.type = 'button';
             renameBtn.className = 'playlist-manager-action-btn';
             renameBtn.textContent = 'Rename';
@@ -101,7 +105,25 @@ export async function refreshPlaylistManager() {
                 );
             });
 
+
+            const deleteBtn = document.createElement('button');
+
+            deleteBtn.type = 'button';
+            deleteBtn.className =
+                'playlist-manager-action-btn playlist-manager-delete-btn';
+
+            deleteBtn.textContent = 'Delete';
+
+            deleteBtn.addEventListener('click', async () => {
+                await deletePlaylistFromUI(
+                    playlist.id,
+                    playlist.name
+                );
+            });
+
+
             actions.appendChild(renameBtn);
+            actions.appendChild(deleteBtn);
 
             row.appendChild(info);
             row.appendChild(actions);
@@ -147,8 +169,8 @@ export async function createPlaylistFromUI() {
 
 
 /*
- * rename lang sa karon.
- * important: name lang mausab, playlist id stays the same.
+ * rename lang.
+ * name changes, id stays the same.
  */
 export async function renamePlaylistFromUI(
     playlistId,
@@ -179,6 +201,34 @@ export async function renamePlaylistFromUI(
 
     } catch (error) {
         console.error('Unable to rename playlist:', error);
+    }
+}
+
+
+/*
+ * playlist record lang ang i-delete diri.
+ * tracks stay sa DB kay pwede shared sa lain playlist.
+ */
+export async function deletePlaylistFromUI(
+    playlistId,
+    playlistName
+) {
+    const confirmed = window.confirm(
+        `Delete playlist "${playlistName}"?\n\n` +
+        'The saved audio tracks will not be deleted.'
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    try {
+        await deletePlaylist(playlistId);
+
+        await refreshPlaylistManager();
+
+    } catch (error) {
+        console.error('Unable to delete playlist:', error);
     }
 }
 
