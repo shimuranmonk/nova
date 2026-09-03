@@ -105,6 +105,27 @@ than a rejection when the hashes match. A hash difference means the audio
 contents differ. Renaming a Track after attachment does not affect its MSYNC
 data.
 
+## Mandatory audio fingerprint
+
+`SHA256` is required in every MSYNC v1 `[AUDIO]` section.
+
+Rules:
+
+1. `SHA256` contains exactly 64 hexadecimal characters.
+2. Uppercase and lowercase hexadecimal are equivalent.
+3. Nova compares it with `Track.metadata.sha256` during import.
+4. A matching hash permits attachment, subject to all other validation.
+5. A mismatch blocks attachment and reports that the MSYNC file targets a
+   different audio version.
+6. Nova does not provide a silent hash-mismatch override.
+7. When a legacy Track has no stored hash, Nova computes the audio hash,
+   updates the Track metadata, and then performs the comparison.
+8. The MSYNC tab provides a way to view or copy a selected Track's audio hash
+   for external authoring.
+9. This value fingerprints the audio bytes. It is distinct from
+   `Track.metadata.msync.sourceSha256`, which fingerprints the MSYNC source
+   text.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
