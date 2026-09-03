@@ -3,6 +3,40 @@
 Status: in progress. This document records approved format decisions as the
 MSYNC v1 structure is frozen step by step.
 
+## Top-level file structure
+
+An MSYNC v1 file uses these top-level elements:
+
+```text
+MSYNC_VERSION=1
+
+[INFO]
+[AUDIO]
+[SESSION]
+[DRILLS]
+[FLAVOR:name]
+[INLINE:name]
+[CUES]
+```
+
+Requirements:
+
+```text
+MSYNC_VERSION=1   required; exactly once and before all sections
+[INFO]            optional; at most once
+[AUDIO]           required; exactly once
+[SESSION]         optional; at most once
+[DRILLS]          optional; at most once
+[FLAVOR:name]     optional; repeatable with a unique name
+[INLINE:name]     optional; repeatable with a unique name
+[CUES]            required; exactly once
+```
+
+`[DRILLS]` assigns readable aliases to drills that already exist in Nova.
+`[INLINE:name]` defines a complete, portable drill inside the MSYNC file.
+MSYNC v1 supports both forms. Unknown sections, duplicate singleton sections,
+and duplicate flavor or inline names are validation errors.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
