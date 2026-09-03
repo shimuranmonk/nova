@@ -143,4 +143,5 @@ Based on findings by [smee](https://github.com/smee/nova-s-custom-drills) and pl
 
 Drafted by [Alapaap.net](https://www.alapaap.net) - Open Skies Open Mind
 
+
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J4U0265K1Y)
