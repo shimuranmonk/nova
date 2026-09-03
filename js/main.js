@@ -722,6 +722,16 @@ window.setMode =
                 'ui-music'
             );
 
+        const uiQuickMusic =
+            document.getElementById(
+                'ui-quick-music'
+            );
+
+        const uiPause =
+            document.getElementById(
+                'ui-pause'
+            );
+
 
         const uiMsync =
             document.getElementById(
@@ -743,6 +753,10 @@ window.setMode =
             'hidden'
         );
 
+        uiQuickMusic?.classList.add(
+            'hidden'
+        );
+
 
         uiMsync?.classList.add(
             'hidden'
@@ -750,6 +764,11 @@ window.setMode =
 
 
         setMsyncModeActive(mode === 'msync');
+
+        uiPause?.classList.toggle(
+            'hidden',
+            mode === 'music' || mode === 'msync'
+        );
 
 
         if (mode === 'reps') {
@@ -764,6 +783,9 @@ window.setMode =
         }
         else if (mode === 'music') {
             uiMusic?.classList.remove(
+                'hidden'
+            );
+            uiQuickMusic?.classList.remove(
                 'hidden'
             );
         }

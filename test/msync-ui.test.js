@@ -74,4 +74,5 @@ test('ships every required MSYNC import control in the page', async () => {
     }
     assert.match(html, /id="playlist-manager-library-view"/);
     assert.match(html, /id="playlist-library-list"/);
+    assert.match(html, /id="ui-quick-music"/);
 });
