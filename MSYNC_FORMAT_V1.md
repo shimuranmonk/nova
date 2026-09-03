@@ -154,24 +154,30 @@ Rules:
 
 ## Existing drill references
 
-For the MSYNC v1 MVP, `[DRILLS]` may reference built-in Nova drills only.
+MSYNC v1 may reference both built-in and custom Nova drills.
 
 ```text
 [DRILLS]
-WARMUP=A01
-ATTACK=A05
+WARMUP=BUILTIN:push(b);LEVEL=1
+ATTACK=BUILTIN:loop(f)-drive(b);LEVEL=2
+MY_SERVE=CUSTOM:550e8400-e29b-41d4-a716-446655440000;LEVEL=1
 ```
 
-The name on the left is a unique, readable alias used by cues. The value on
-the right is the existing built-in Nova drill key. Custom patterns required by
-an external MSYNC file must be defined in `[INLINE:name]` instead.
+The name on the left is a unique, readable alias used by cues. `BUILTIN:` is
+followed by an exact Nova built-in drill key. `CUSTOM:` is followed by an
+immutable custom-drill UUID. `LEVEL` is required and accepts 1, 2, or 3; the
+Drill tab's current level does not affect MSYNC.
 
-Current custom-drill keys contain their name and a timestamp, and Nova creates
-a new key when a custom drill is renamed. They are therefore unsuitable as
-stable external references. Restricting `DRILL` to built-in keys prevents an
-MSYNC attachment from breaking after a custom-drill rename and keeps downloaded
-files portable. A future format may reference saved custom drills after Nova
-gives them immutable IDs.
+Nova's current custom-drill keys contain editable names and may change during
+rename, so they cannot serve as MSYNC identity. Every custom drill receives a
+separate immutable UUID. Existing custom drills without one are assigned a UUID
+once and saved. Renaming changes the display name and current internal key but
+never this ID.
+
+A custom reference is local unless the same custom drill and UUID are imported
+on another installation. Fully portable downloaded files should use
+`[INLINE:name]`. Missing, deleted, malformed, or empty drill-level references
+fail the existing strict validation rules.
 
 ## Inline drill syntax
 
