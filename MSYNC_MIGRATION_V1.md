@@ -1,7 +1,6 @@
 # MSYNC Phase 1 — Database and Migration Contract
 
-Status: in progress. Approved migration decisions are recorded here as the
-contract is completed step by step.
+Status: approved and frozen for MSYNC v1.
 
 ## IndexedDB version policy
 
@@ -73,3 +72,25 @@ The custom-drill interface provides `Copy MSYNC Reference`, yielding
 `CUSTOM:<uuid>` for use in external files. Current CSV export does not preserve
 UUIDs, so custom references are installation-local. Deleting and reimporting a
 custom drill creates a new identity. `INLINE` remains the portable choice.
+
+## Migration failure and recovery
+
+Before custom UUID migration, Nova preserves the exact original `custom_data`
+string under `custom_data_backup_pre_uuid_v1` without overwriting an existing
+valid backup. It builds the migrated value under
+`custom_data_uuid_v1_pending`, reads it back, and validates it before replacing
+the primary `custom_data` value.
+
+Nova then reads and validates the new primary value. Only after successful
+verification does it set `custom_data_uuid_migration=1` and remove the pending
+value. The original backup remains through the MVP release and is never cleared
+automatically. Migration is idempotent and preserves every existing valid UUID.
+
+Parsing, storage, quota, or verification failure stops migration, leaves or
+restores the original primary data, and does not set the completion marker.
+Ordinary custom drills remain available from the original data while only
+custom-drill MSYNC references are disabled. Built-in and inline MSYNC remain
+functional. Nova never deletes custom drills or ball data during recovery and
+provides a copyable diagnostic migration report.
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.
