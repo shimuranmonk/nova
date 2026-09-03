@@ -542,6 +542,21 @@ session under the approved cleanup rules.
 commands, undefined names, malformed values, and misplaced commands are
 validation errors. Unused definitions produce warnings.
 
+## Initial session behavior
+
+An MSYNC session begins with no active drill, flavor, or rest and with the robot
+stopped. The first `DRILL` or `INLINE` cue may occur at `00:00.000` or later.
+
+Before the first activation cue, music and the timeline run normally while the
+robot remains idle. This permits intentional musical introductions without
+robot activity. Nova never selects an implicit or default drill.
+
+A `FLAVOR` cue before the first activation is invalid. A `REST` cue before the
+first activation is also invalid because the robot is already idle. `[CUES]`
+still contains at least one valid activation. The configured countdown occurs
+before timestamp zero and consumes none of the audio. Cues at `00:00.000` are
+processed as synchronized playback begins.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
