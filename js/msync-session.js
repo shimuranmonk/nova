@@ -67,21 +67,28 @@ export class MsyncSessionController {
     constructor({ audio,
         setTimer = (callback, delay) => setTimeout(callback, delay),
         clearTimer = timer => clearTimeout(timer),
-        pollInterval = 25, onState = () => {}, onEvent = () => {} }) {
+        pollInterval = 25, onState = () => {}, onEvent = () => {},
+        onRobotEvent = () => {} }) {
         this.audio = audio;
         this.setTimer = setTimer;
         this.clearTimer = clearTimer;
         this.pollInterval = pollInterval;
         this.onState = onState;
         this.onEvent = onEvent;
+        this.onRobotEvent = onRobotEvent;
         this.state = MSYNC_SESSION_STATE.READY;
         this.parsed = null;
         this.cueIndex = 0;
         this.active = null;
         this.flavor = null;
         this.restUntilMs = null;
+        this.robotCueIndex = 0;
+        this.robotActive = null;
+        this.robotFlavor = null;
+        this.robotRestUntilMs = null;
         this.timer = null;
         this.countdownTimer = null;
+        this.preRollTimers = [];
         this.audio.onEnded = () => this.complete('AUDIO_ENDED');
         this.audio.onError = error => this.fail('AUDIO_ERROR', error);
     }
@@ -103,11 +110,16 @@ export class MsyncSessionController {
         this.active = null;
         this.flavor = null;
         this.restUntilMs = null;
+        this.robotCueIndex = 0;
+        this.robotActive = null;
+        this.robotFlavor = null;
+        this.robotRestUntilMs = null;
         const countdown = parsed.session?.countdown ?? 4;
         if (countdown > 0) {
             this.state = MSYNC_SESSION_STATE.COUNTDOWN;
             this.emitState();
             this.emit('COUNTDOWN', { seconds: countdown });
+            this.scheduleRobotPreRoll(countdown);
             this.countdownTimer = this.setTimer(
                 () => this.beginPlayback(),
                 countdown * 1000
@@ -115,6 +127,28 @@ export class MsyncSessionController {
         }
         else await this.beginPlayback();
         return true;
+    }
+
+    scheduleRobotPreRoll(countdownSeconds) {
+        const leadMs = Math.round((this.parsed.session?.robotLead ?? 1.3) * 1000);
+        if (leadMs <= 0) return;
+        const targetTimes = new Set();
+        for (const cue of this.parsed.cues || []) {
+            if (cue.timeMs < leadMs) targetTimes.add(cue.timeMs);
+            if (cue.type === 'REST') {
+                const restEnd = cue.timeMs + cue.durationMs;
+                if (restEnd < leadMs) targetTimes.add(restEnd);
+            }
+        }
+        for (const targetTime of [...targetTimes].sort((a, b) => a - b)) {
+            const delay = Math.max(0,
+                countdownSeconds * 1000 - leadMs + targetTime);
+            this.preRollTimers.push(this.setTimer(() => {
+                if (this.state === MSYNC_SESSION_STATE.COUNTDOWN) {
+                    this.processRobotPosition(targetTime - leadMs);
+                }
+            }, delay));
+        }
     }
 
     async beginPlayback() {
@@ -143,6 +177,7 @@ export class MsyncSessionController {
 
     processPosition(positionMs) {
         if (this.state !== MSYNC_SESSION_STATE.PLAYING || !this.parsed) return;
+        this.processRobotPosition(positionMs);
         if (this.restUntilMs !== null && positionMs >= this.restUntilMs) {
             this.emit('REST_END', {
                 positionMs,
@@ -161,6 +196,62 @@ export class MsyncSessionController {
             Number.isFinite(this.parsed.audio?.durationMs) &&
             positionMs >= this.parsed.audio.durationMs) {
             this.complete('AUDIO_ENDED');
+        }
+    }
+
+    processRobotPosition(positionMs) {
+        const leadMs = Math.round((this.parsed.session?.robotLead ?? 1.3) * 1000);
+        const commandHorizonMs = positionMs + leadMs;
+        const cues = this.parsed.cues || [];
+
+        while (true) {
+            const cue = cues[this.robotCueIndex];
+            const cueTime = cue?.timeMs ?? Infinity;
+            const restEndTime = this.robotRestUntilMs ?? Infinity;
+            const nextTime = Math.min(cueTime, restEndTime);
+            if (nextTime > commandHorizonMs) break;
+
+            if (restEndTime <= cueTime) {
+                this.onRobotEvent({
+                    type: 'REST_END',
+                    positionMs: restEndTime,
+                    commandPositionMs: Math.max(0, restEndTime - leadMs),
+                    active: this.robotActive,
+                    flavor: this.robotFlavor
+                });
+                this.robotRestUntilMs = null;
+                continue;
+            }
+
+            this.robotCueIndex++;
+            this.applyRobotCue(cue, leadMs);
+        }
+    }
+
+    applyRobotCue(cue, leadMs) {
+        const details = {
+            positionMs: cue.timeMs,
+            commandPositionMs: Math.max(0, cue.timeMs - leadMs),
+            leadMs
+        };
+        if (cue.type === 'DRILL' || cue.type === 'INLINE') {
+            this.robotActive = { type: cue.type, name: cue.name };
+            this.robotFlavor = null;
+            this.onRobotEvent({ type: 'ACTIVATE', ...details,
+                active: this.robotActive, flavor: null });
+        }
+        else if (cue.type === 'FLAVOR') {
+            this.robotFlavor = cue.name === 'NONE' ? null : cue.name;
+            this.onRobotEvent({ type: 'FLAVOR', ...details,
+                active: this.robotActive, flavor: this.robotFlavor });
+        }
+        else if (cue.type === 'REST') {
+            this.robotRestUntilMs = cue.timeMs + cue.durationMs;
+            this.onRobotEvent({ type: 'REST_START', ...details,
+                durationMs: cue.durationMs, untilMs: this.robotRestUntilMs });
+        }
+        else if (cue.type === 'STOP') {
+            this.onRobotEvent({ type: 'COMPLETE', ...details, reason: 'STOP_CUE' });
         }
     }
 
@@ -199,6 +290,7 @@ export class MsyncSessionController {
         this.state = MSYNC_SESSION_STATE.PAUSED;
         this.emitState();
         this.emit('PAUSE', { positionMs: this.audio.currentTimeMs() });
+        this.onRobotEvent({ type: 'PAUSE', positionMs: this.audio.currentTimeMs() });
         return true;
     }
 
@@ -210,6 +302,7 @@ export class MsyncSessionController {
             this.state = MSYNC_SESSION_STATE.PLAYING;
             this.emitState();
             this.emit('RESUME', { positionMs: this.audio.currentTimeMs() });
+            this.onRobotEvent({ type: 'RESUME', positionMs: this.audio.currentTimeMs() });
             this.schedulePoll();
             return true;
         }
@@ -237,6 +330,7 @@ export class MsyncSessionController {
         this.restUntilMs = null;
         this.state = MSYNC_SESSION_STATE.COMPLETED;
         this.emit('COMPLETE', { reason });
+        this.onRobotEvent({ type: 'COMPLETE', reason });
         this.emitState(reason);
     }
 
@@ -251,14 +345,17 @@ export class MsyncSessionController {
         this.restUntilMs = null;
         this.state = MSYNC_SESSION_STATE.ERROR;
         this.emit('ERROR', { code, message: error?.message || String(error || code) });
+        this.onRobotEvent({ type: 'ERROR', code, message: error?.message || String(error || code) });
         this.emitState(code);
     }
 
     cancelTimers() {
         this.clearTimer(this.timer);
         this.clearTimer(this.countdownTimer);
+        this.preRollTimers.forEach(timer => this.clearTimer(timer));
         this.timer = null;
         this.countdownTimer = null;
+        this.preRollTimers = [];
     }
 
     destroy() {

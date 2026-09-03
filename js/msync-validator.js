@@ -110,9 +110,9 @@ function validateAudio(entries, issues) {
 }
 
 function validateSession(entries, issues) {
-    const fields = collectFields(entries, new Set(['COUNTDOWN', 'CYCLE_PAUSE']),
+    const fields = collectFields(entries, new Set(['COUNTDOWN', 'CYCLE_PAUSE', 'ROBOT_LEAD']),
         new Set(), 'SESSION', issues);
-    const output = { countdown: 4, cyclePause: 1 };
+    const output = { countdown: 4, cyclePause: 1, robotLead: 1.3 };
     if (fields.COUNTDOWN) {
         const value = exactNumber(fields.COUNTDOWN.value, { min: 0, max: 10, step: 1 });
         if (value === null) add(issues, issue('ERROR', 'INVALID_COUNTDOWN', fields.COUNTDOWN.line,
@@ -125,6 +125,13 @@ function validateSession(entries, issues) {
         if (value === null) add(issues, issue('ERROR', 'INVALID_CYCLE_PAUSE', fields.CYCLE_PAUSE.line,
             'SESSION', 'CYCLE_PAUSE must be 0 through 10 with at most three decimal places.'));
         else output.cyclePause = value;
+    }
+    if (fields.ROBOT_LEAD) {
+        const value = exactNumber(fields.ROBOT_LEAD.value,
+            { min: 0, max: 5, step: 0.001, decimals: 3 });
+        if (value === null) add(issues, issue('ERROR', 'INVALID_ROBOT_LEAD', fields.ROBOT_LEAD.line,
+            'SESSION', 'ROBOT_LEAD must be 0 through 5 with at most three decimal places.'));
+        else output.robotLead = value;
     }
     return output;
 }

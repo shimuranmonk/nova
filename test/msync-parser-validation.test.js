@@ -52,8 +52,20 @@ test('accepts a valid minimal MSYNC v1 source', () => {
     assert.equal(result.errors.length, 0);
     assert.equal(result.parsed.session.countdown, 4);
     assert.equal(result.parsed.session.cyclePause, 1);
+    assert.equal(result.parsed.session.robotLead, 1.3);
     assert.equal(result.parsed.cues[0].timeMs, 0);
     assert.equal(result.parsed.inline.INL_TEST.balls[0].speed, 5);
+});
+
+test('accepts and bounds SESSION ROBOT_LEAD', () => {
+    const valid = validateMsyncSource(source().replace('[AUDIO]',
+        '[SESSION]\nROBOT_LEAD=1.275\n\n[AUDIO]'), { track: track() });
+    assert.equal(valid.valid, true);
+    assert.equal(valid.parsed.session.robotLead, 1.275);
+
+    const invalid = validateMsyncSource(source().replace('[AUDIO]',
+        '[SESSION]\nROBOT_LEAD=5.001\n\n[AUDIO]'), { track: track() });
+    assert.ok(invalid.errors.some(value => value.code === 'INVALID_ROBOT_LEAD'));
 });
 
 test('accepts the canonical MSYNC v1 benchmark', async () => {

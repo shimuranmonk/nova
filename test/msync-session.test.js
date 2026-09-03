@@ -116,11 +116,78 @@ test('countdown precedes playback and consumes no audio timeline', async () => {
 
     assert.equal(controller.state, MSYNC_SESSION_STATE.COUNTDOWN);
     assert.equal(audio.playing, false);
-    assert.equal(timers[0].delay, 4000);
+    const playbackTimer = timers.find(value => value.delay === 4000);
+    assert.ok(playbackTimer);
     assert.equal(events[0].type, 'COUNTDOWN');
-    await timers[0].callback();
+    await playbackTimer.callback();
     assert.equal(controller.state, MSYNC_SESSION_STATE.PLAYING);
     assert.equal(events[1].positionMs, 0);
+});
+
+test('countdown pre-roll leads an opening cue before audio starts', async () => {
+    const audio = new FakeAudio();
+    const timers = [];
+    const robotEvents = [];
+    const controller = new MsyncSessionController({
+        audio,
+        setTimer: (callback, delay) => {
+            timers.push({ callback, delay });
+            return timers.length;
+        },
+        clearTimer: () => {},
+        onRobotEvent: value => robotEvents.push(value)
+    });
+    const parsed = timeline(4);
+    parsed.session.robotLead = 1.3;
+    await controller.start(parsed);
+
+    const preRoll = timers.find(value => value.delay === 2700);
+    assert.ok(preRoll);
+    preRoll.callback();
+    assert.equal(audio.playing, false);
+    assert.equal(robotEvents[0].type, 'ACTIVATE');
+    assert.equal(robotEvents[0].positionMs, 0);
+});
+
+test('robot events lead written cues while logical events stay on the audio clock', async () => {
+    const audio = new FakeAudio();
+    const logicalEvents = [];
+    const robotEvents = [];
+    const parsed = {
+        session: { countdown: 0, cyclePause: 1, robotLead: 1.3 },
+        audio: { durationMs: 10000 },
+        cues: [
+            { timeMs: 5000, type: 'DRILL', name: 'DRL_ONE' },
+            { timeMs: 7000, type: 'REST', durationMs: 2000 },
+            { timeMs: 10000, type: 'STOP' }
+        ]
+    };
+    const controller = new MsyncSessionController({
+        audio,
+        setTimer: () => 1,
+        clearTimer: () => {},
+        onEvent: value => logicalEvents.push(value),
+        onRobotEvent: value => robotEvents.push(value)
+    });
+    await controller.start(parsed);
+
+    controller.processPosition(3699);
+    assert.equal(robotEvents.length, 0);
+    controller.processPosition(3700);
+    assert.equal(robotEvents[0].type, 'ACTIVATE');
+    assert.equal(robotEvents[0].positionMs, 5000);
+    assert.equal(robotEvents[0].commandPositionMs, 3700);
+    assert.equal(logicalEvents.length, 0);
+
+    controller.processPosition(5000);
+    assert.equal(logicalEvents[0].type, 'ACTIVATE');
+    controller.processPosition(5700);
+    assert.equal(robotEvents[1].type, 'REST_START');
+    controller.processPosition(7700);
+    assert.equal(robotEvents[2].type, 'REST_END');
+    controller.processPosition(8700);
+    assert.equal(robotEvents[3].type, 'COMPLETE');
+    assert.equal(controller.state, MSYNC_SESSION_STATE.PLAYING);
 });
 
 test('natural audio completion and playback errors clean all runtime state', async () => {

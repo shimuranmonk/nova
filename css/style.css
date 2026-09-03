@@ -525,6 +525,27 @@ input[type="number"]:disabled {
     color: #d63031;
 }
 
+.msync-runtime-setting {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: left;
+}
+
+.msync-runtime-setting input {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 4px 0;
+}
+
+.msync-runtime-setting small {
+    color: var(--text-light);
+    font-size: 0.68rem;
+}
+
 
 /* === WIDE BUTTON STYLE === */
 

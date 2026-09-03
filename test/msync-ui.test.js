@@ -66,6 +66,7 @@ test('ships every required MSYNC import control in the page', async () => {
         'msync-session-state',
         'msync-sim-start',
         'msync-live-start',
+        'msync-robot-lead',
         'msync-sim-pause',
         'msync-sim-stop',
         'msync-event-log'

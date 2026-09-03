@@ -66,6 +66,7 @@ function updateTrackStatus() {
     const fileInput = element('msync-file-input');
     const copyHash = element('msync-copy-hash');
     const simulation = element('msync-simulation');
+    const robotLead = element('msync-robot-lead');
 
     pendingValidation = null;
     renderValidation(null);
@@ -77,6 +78,7 @@ function updateTrackStatus() {
         fileInput.disabled = true;
         copyHash.disabled = true;
         simulation.classList.add('hidden');
+        robotLead.disabled = true;
         return;
     }
 
@@ -92,7 +94,13 @@ function updateTrackStatus() {
     fileInput.disabled = false;
     copyHash.disabled = false;
     simulation.classList.toggle('hidden', !attachment);
-    if (attachment) updateSimulationState(MSYNC_SESSION_STATE.READY);
+    robotLead.disabled = !attachment;
+    if (attachment) {
+        robotLead.value = Number(
+            attachment.parsed?.session?.robotLead ?? 1.3
+        ).toFixed(3);
+        updateSimulationState(MSYNC_SESSION_STATE.READY);
+    }
 }
 
 function updateSimulationState(state, reason = null) {
@@ -344,6 +352,11 @@ export function initializeMsyncUI() {
     element('msync-sim-pause').addEventListener('click', toggleSimulationPause);
     element('msync-sim-stop').addEventListener('click', () =>
         sessionController?.stop('MANUAL_STOP'));
+    element('msync-robot-lead').addEventListener('change', event => {
+        const value = Number(event.target.value);
+        event.target.value = Math.min(5, Math.max(0,
+            Number.isFinite(value) ? value : 1.3)).toFixed(3);
+    });
     document.addEventListener('connection-changed', () => {
         updateSimulationState(
             sessionController?.state || MSYNC_SESSION_STATE.READY
@@ -427,6 +440,15 @@ async function startMsyncSession(useLiveRobot) {
             return;
         }
         if (!await acceptNewWarnings(result)) return;
+        const robotLead = Number(element('msync-robot-lead').value);
+        result.parsed = {
+            ...result.parsed,
+            session: {
+                ...result.parsed.session,
+                robotLead: Math.min(5, Math.max(0,
+                    Number.isFinite(robotLead) ? robotLead : 1.3))
+            }
+        };
         if (useLiveRobot && !window.confirm(
             'Start LIVE MSYNC?\n\nThe connected robot will begin firing balls at the scheduled cues. Keep the table clear and remain ready to press Stop.'
         )) return;
@@ -450,8 +472,8 @@ async function startMsyncSession(useLiveRobot) {
             onState: value => updateSimulationState(value.state, value.reason),
             onEvent: value => {
                 recordSimulationEvent(value);
-                robotAdapter?.handleSessionEvent(value);
-            }
+            },
+            onRobotEvent: value => robotAdapter?.handleSessionEvent(value)
         });
         await sessionController.start(result.parsed);
     }
