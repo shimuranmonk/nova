@@ -557,6 +557,29 @@ still contains at least one valid activation. The configured countdown occurs
 before timestamp zero and consumes none of the audio. Cues at `00:00.000` are
 processed as synchronized playback begins.
 
+## Cue-time drill transitions
+
+MSYNC uses hard transitions. At a `DRILL` or `INLINE` cue, Nova cancels pending
+repeat work, sends the robot stop command, discards the remainder of the active
+cycle, clears the prior flavor, prepares the new unflavored drill, and sends it
+as soon as the robot is ready. Music and the timeline continue throughout.
+
+`FLAVOR` and `FLAVOR=NONE` also interrupt the current execution, rebuild the
+original active drill with the selected flavor or original parameters, and
+restart it. `REST` interrupts immediately and keeps the robot stopped for its
+timeline duration.
+
+Cue timing remains anchored to the audio clock, so transition delay never
+accumulates. Nova stops before sending replacement drill data. If another
+activation becomes due while an older transition is pending, the newest
+scheduled state wins and stale sends are cancelled. Failure to stop or replace
+safely terminates the complete session with an error.
+
+Actual robot and Bluetooth stop/start latency must be measured before timing
+compensation is implemented. Until then, a cue timestamp means begin the
+transition at that audio time; it does not claim that the first physical ball
+exits at that exact millisecond.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
