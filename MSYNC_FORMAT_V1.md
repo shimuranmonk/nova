@@ -240,6 +240,26 @@ Example:
 `FASTER` affects `WARMUP` only. `ATTACK` begins with its original parameters
 unless another `FLAVOR` cue follows its activation.
 
+## No ball-specific flavors in v1
+
+MSYNC v1 flavors do not support ball-specific overrides. Every supplied
+`FLV_` value applies uniformly to every ball and alternative in the current
+drill. When individual balls require different values, the author defines an
+`INLINE` drill containing the complete pattern.
+
+This preserves the distinction:
+
+```text
+FLAVOR   uniform direct-value overrides for the current drill
+INLINE   ball-specific parameters and complete choreography
+```
+
+## Required end-of-list review
+
+Before the MSYNC v1 format is finalized, revisit the decision to exclude
+ball-specific flavor overrides and confirm that uniform flavors plus inline
+drills cover the intended MVP sessions.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
