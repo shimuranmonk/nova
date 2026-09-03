@@ -210,6 +210,36 @@ Rules:
 14. `SCATTER` and `ACTIVE` are excluded from MSYNC v1 inline drills because
     they are not part of the selected published parameter set.
 
+## Flavor application and scope
+
+A flavor applies uniformly to every ball and every alternative in the
+currently active drill. Present flavor variables replace their corresponding
+parameters with direct Nova values; omitted variables preserve each ball's
+original value.
+
+Flavor scope is limited to one drill activation:
+
+1. `DRILL` or `INLINE` activates a fresh, unmodified execution copy.
+2. `FLAVOR` applies to that currently active execution copy.
+3. The flavor remains effective while that drill repeats.
+4. The next `DRILL` or `INLINE` cue clears the current flavor.
+5. A flavor does not automatically carry into the next drill.
+6. `REST` does not clear the flavor because the same drill resumes afterward.
+7. The original built-in or inline definition is never modified.
+8. When `DRILL` or `INLINE` and `FLAVOR` share a timestamp, cues are processed
+   in file order; the drill-selection cue must appear first.
+
+Example:
+
+```text
+00:15.000 DRILL=WARMUP
+00:15.000 FLAVOR=FASTER
+00:45.000 DRILL=ATTACK
+```
+
+`FASTER` affects `WARMUP` only. `ATTACK` begins with its original parameters
+unless another `FLAVOR` cue follows its activation.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
