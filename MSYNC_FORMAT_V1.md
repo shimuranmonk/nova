@@ -254,11 +254,13 @@ FLAVOR   uniform direct-value overrides for the current drill
 INLINE   ball-specific parameters and complete choreography
 ```
 
-## Required end-of-list review
+## Completed ball-specific flavor review
 
-Before the MSYNC v1 format is finalized, revisit the decision to exclude
-ball-specific flavor overrides and confirm that uniform flavors plus inline
-drills cover the intended MVP sessions.
+The end-of-list review reconfirmed that MSYNC v1 excludes ball-specific flavor
+overrides. Uniform flavors plus inline drills cover the intended MVP sessions.
+A flavor remains effective across ordinary cues such as `REST`, but the next
+`DRILL` or `INLINE` activation clears it. The newly activated drill never
+inherits the previous drill's flavor.
 
 ## Simultaneous cue ordering
 
