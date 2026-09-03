@@ -372,6 +372,31 @@ Rules:
    inside sections.
 8. `MSYNC_VERSION=1` is the first non-comment, nonblank line.
 
+## Cue timestamp format
+
+Every cue timestamp uses exactly:
+
+```text
+MM:SS.mmm
+```
+
+Rules:
+
+1. Minutes contain at least two digits and may exceed 59.
+2. Seconds contain exactly two digits from `00` through `59`.
+3. Milliseconds contain exactly three digits.
+4. `00:00.000` is valid.
+5. Raw seconds and abbreviated timestamps are invalid.
+6. A cue timestamp cannot exceed `[AUDIO].DURATION`.
+7. Cue lines are ordered chronologically.
+8. Equal timestamps are allowed and follow the approved top-to-bottom ordering
+   rules.
+9. Nova converts timestamps to integer milliseconds for comparison and
+   scheduling.
+10. The MSYNC tab displays positions using the same notation.
+11. `REST` values remain durations in seconds and may include a fractional
+    part, for example `01:05.250 REST=2.5`.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
