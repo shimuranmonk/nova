@@ -1,89 +1,146 @@
-# Nova S Pro Drill controll
+# Nova S Pro Drill Control PLUS
 
-Webclient allowing use of Nova S Pro without the original app. Original app requires internet access to venor's servers.
-Supports pre-programmed and custom  drills.
-Based on findings by https://github.com/smee/nova-s-custom-drills. Thank you!
+A browser-based controller for the Nova S Pro table tennis robot.
 
-![Alt text](https://github.com/olanga/nova/blob/main/NovaDrillControl.png?raw=false "Nova  Drill Control")
-![Alt text](https://github.com/olanga/nova/blob/main/DrillEdit2.png?raw=true "Nova  Drill Control")
-![Alt text](https://github.com/olanga/nova/blob/main/CountDown.png?raw=true "Nova  Drill Control")
+This project is based on the original Nova web client by [olanga](https://github.com/olanga/nova), which provides an alternative to the official application without requiring server connectivity or user login.
 
+This fork adds additional training-session features while retaining the original drill editor, Bluetooth control, drill management, and local browser storage.
 
-## How to use
-- open https://olanga.github.io/nova/
-  
-  or
-  
-- download all files and host it on your own server (local server: python3 -m http.server)
-  
-Webclient works only with Chrome and Chromium type browsers
+## Use Online
+
+Open the web application:
+
+https://shimuranmonk.github.io/nova/
+
+A Chromium-based browser such as Chrome or Edge is recommended.
+
+Web Bluetooth is required to connect to the Nova S Pro. iPhone/iOS browsers are currently not supported for the robot connection.
+
+## Basic Use
+
+1. Open the Nova web application.
+2. Select **Connect** and choose the Nova S Pro.
+3. Select a difficulty level.
+4. Choose a session mode:
+   - Reps
+   - Time
+   - Music
+   - MSYNC
+5. Select a drill.
+6. The countdown begins and the robot starts the selected drill.
+
+The starting countdown can also be skipped by tapping it.
+
+## Session Modes
+
+### Reps
+
+Runs the selected drill for the specified number of repetitions.
+
+### Time
+
+Runs the selected drill until the specified time expires.
+
+### Music
+
+Runs the selected drill for the duration of either a saved playlist or a
+temporary Quick Music selection. Music mode does not use the drill-pause
+setting.
+
+To use Music mode:
+
+1. Open the menu and select **Manage Playlists** to create a saved playlist
+   and add audio files. **Stored Tracks** lists saved audio and provides the
+   permanent-delete control.
+2. Select **Music**.
+3. In the left panel, choose a saved playlist and tap **Use Saved Playlist**;
+   or use **Choose Music** in the right panel for temporary audio that is not
+   saved to the database.
+4. Select a drill. Music and the robot begin after the countdown.
+5. The robot stops automatically when the final track ends.
+
+The selected music can be reused for succeeding drills without selecting it
+again.
+
+During the session, Nova displays:
+
+- Current track
+- Track number
+- Elapsed playlist time
+- Remaining playlist time
+- Total playlist duration
+
+### MSYNC
+
+MSYNC runs externally authored `.msync` cue files against audio saved through
+Playlist Manager. Music mode ignores MSYNC attachments; synchronization is
+used only in the MSYNC tab.
+
+To use MSYNC mode:
+
+1. Save the intended audio in **Manage Playlists**, then select **MSYNC**.
+2. Choose the stored track. Use **Copy Audio Hash** when authoring the external
+   `.msync` file.
+3. Tap **Choose .msync File** and select the matching file. Validation errors
+   must be corrected; warnings require explicit acceptance.
+4. Adjust **Robot Lead** if needed. The default `1.300` seconds compensates for
+   measured command-to-ball launch delay without changing the music timeline.
+5. Use **Start Simulation** to verify the cues without robot commands.
+6. Connect the robot, clear the table, and use **Start Live Robot** only after
+   the simulation is correct.
+
+The external file remains authoritative. Editing Robot Lead in the tab changes
+only the current run and does not rewrite the attached file. See
+[`MSYNC_FORMAT_V1.md`](MSYNC_FORMAT_V1.md) for the format and
+[`MSYNC_V1_EXAMPLE.msync`](MSYNC_V1_EXAMPLE.msync) for a working example.
+Validation behavior is documented in
+[`MSYNC_VALIDATION_V1.md`](MSYNC_VALIDATION_V1.md).
 
 ## Features
-- Possible to use offline
-- Possible to modify and save pre-programmed drills
-- Possible to share and download drills using codes
-- Long-press the drill button to open the drill editor
-- Ball and drill editor
-- Shoot a single test ball from the drill editor (no save required to test)
-- Test drill in drill editor will play all balls once based on current settings
-- Possible to set modified settings as a new default
-- Programmed and custom drills are divided into 3 categories. Source smee: [Google doc](https://docs.google.com/spreadsheets/d/e/2PACX-1vRweUyHQsuiE_Baz1HKoCv7o6rRpyXtv9ERMkRDXxvcSbOb-dBnu6BW4vsHs4eCEjQq12_bZNPkge4-/pubhtml?gid=1641077883&single=true)
-- There are 4 themes including a dark mode
-- Optional console log to trace events
-- Length of drill can be set by time or number of repetitions
-- Countdown to start and drill countdown 
-- Ball sequence within a drill can be randomized in the drill editor
-- Randomized drills are marked with a badge ‘R’
-- Drill can be paused or stopped anytime
-- Each ball in a custom drill can have many options (pseudo randomness))
-- Accumulated counters (eg. Balls: 65 | Drills: 38)
-- Possible to factory reset settings
-- Factory reset removes all custom drills, resets counters and restores default drills
-- All settings are stored in a browser's local storage
 
-## Custom drills - additional info
-- Custom drills can be defined in three groups: Custom A, B and C
-- Each custom category can hold up to 20 drills
-- Every custom drill can hold up to 20 balls
-- Custom drills can be imported and exported as CSV file. See nova_custom_drills_example.csv
-- Drills in custom category are created dynamically based on the data in the CSV file
-- Ball options. Each ball can have many options which will be picked at random
-- Alternative balls have the same ball number in the CSV file:
+- Web Bluetooth control of the Nova S Pro
+- Customizable drills and ball sequences
+- Repetition-based sessions
+- Timed sessions
+- Music playlist-based sessions
+- Pause, resume, and stop controls
+- Adjustable pause between drill repetitions
+- Drill randomization
+- Ball scatter control
+- Multiple ball variants
+- Custom drill banks A, B, and C
+- CSV import and export
+- Drill sharing
+- Drag-and-drop drill management
+- Local browser storage
+- Training statistics
+- Multiple themes including dark mode
+- Countdown skip
 
-    `Set;Ball;Name;Top;Bottom;Height;Drop;Freq;Reps`
-  
-    `A;1;push 1;1000;1000;-40;6;0;1`
+## Drill Editor
 
-    `A;1;push 1;1000;1000;40;6;0;1`
+Long-press a drill to open the editor.
 
-## Drill editor
-- Delete, save and save as new drills
-- Share drill between devices and users using codes
+The editor supports:
 
-## Ball editor
-- Add and remove balls in a sequence
-- Add and remove optional balls (pseudo randomness))
-- deactivate and activate balls
-- Rename drill's name
-- Change sequence of the balls
+- Adding and removing balls
+- Editing speed, spin, height, drop point, BPM, and repetitions
+- Reordering balls
+- Renaming drills
+- Testing individual balls
+- Testing complete drills
+- Saving modified drills
+- Creating copies using Save As
+- Deleting custom drills
 
-## Ball parameters (as discovered by Smee)
+## Credits & Support
 
-- Top: speed upper wheel 400 <=x <= 7500 rpm (step size 1)
-- Bot: speed lower wheel 400 <=x <= 7500 rpm (step size 1)
-- Hgt: ball height -50 <=x <= 100 (step size 1) ; (down - up)
-- Drp: drop point -10 <=x <= 10 (step size 0.5) ; (right to left)
-- Frq: frequency 0 <=x <= 100 (step size 10) ; (0% = 30bpm = 2 sec pause) (100% = 90bpm = 0.67 sec pause) credit: plunder
-- Rep: repetitions 1 <=x <= 200 (step size 1)
+Additional informations: [Wiki](https://github.com/olanga/nova/wiki/General-information)
 
+Spinsight measurements: [Wiki](https://github.com/olanga/nova/wiki/Spinsight-measurements-with-Nova-S-Pro)
 
+Based on findings by [smee](https://github.com/smee/nova-s-custom-drills) and plunder.
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/E1E21PUFEQ)
+Drafted by [Alapaap.net](https://www.alapaap.net) - Open Skies Open Mind
 
-
-
-
-
-
-
-
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/J4U0265K1Y)
