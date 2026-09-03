@@ -47,3 +47,23 @@ An import never creates partial parsed data, partially replaces an attachment,
 or deletes the previous attachment before the replacement succeeds. It never
 modifies or deletes the selected source file, audio, playlists, drills, or
 Music-tab behavior.
+
+## Validation issue format
+
+Each issue contains a severity, stable code, one-based source line when
+applicable, section, and plain-language message. `expected` and `found` values
+are included when useful. Section errors point to the section header;
+cross-reference errors point to the broken reference; audio comparison errors
+point to the relevant `[AUDIO]` field. Import-level problems without a source
+line use section `IMPORT` and no line number.
+
+The main UI begins with a summary such as `MSYNC file not attached — 3 errors
+and 1 warning were found`, followed by issues in source-line order. Errors sort
+before warnings on the same line. Stable codes support tests and diagnostics
+but plain language remains primary.
+
+Nova collects independent issues rather than stopping at the first error. It
+stops after 100 reported issues and asks the author to correct and validate
+again. Users can copy the complete validation report for their external editor.
+Raw exceptions and stack traces remain diagnostic logs rather than primary UI,
+and reports never expose the stored audio Blob.
