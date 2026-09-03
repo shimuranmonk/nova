@@ -72,4 +72,6 @@ test('ships every required MSYNC import control in the page', async () => {
     ]) {
         assert.match(html, new RegExp(`id="${id}"`), id);
     }
+    assert.match(html, /id="playlist-manager-library-view"/);
+    assert.match(html, /id="playlist-library-list"/);
 });

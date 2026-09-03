@@ -53,7 +53,13 @@ class FakeStore {
     }
 
     delete(id) {
-        return new FakeRequest(() => this.records.delete(id));
+        const request = new FakeRequest(() => this.records.delete(id));
+        queueMicrotask(() => {
+            queueMicrotask(() => {
+                this.transaction?.oncomplete?.();
+            });
+        });
+        return request;
     }
 }
 
@@ -70,14 +76,17 @@ class FakeDatabase {
         return new FakeStore(this.stores.get(name));
     }
 
-    transaction(name) {
-        if (!this.stores.has(name)) {
-            throw new Error(`Missing object store ${name}`);
+    transaction(names) {
+        const requested = Array.isArray(names) ? names : [names];
+        for (const name of requested) {
+            if (!this.stores.has(name)) {
+                throw new Error(`Missing object store ${name}`);
+            }
         }
 
         const transaction = {};
-        transaction.objectStore = () => new FakeStore(
-            this.stores.get(name),
+        transaction.objectStore = name => new FakeStore(
+            this.stores.get(name || requested[0]),
             transaction
         );
 
@@ -198,6 +207,34 @@ test('persists playlist membership and ordering by stable Track ID', async () =>
         orderedTracks.map(track => track.id),
         [secondTrack.id, firstTrack.id]
     );
+});
+
+test('permanently deletes a track and removes it from every playlist', async () => {
+    const tracks = await playlistModule.getAllTracks();
+    const doomed = tracks[0];
+    const survivor = {
+        ...doomed,
+        id: 'permanent-delete-survivor',
+        filename: 'survivor.mp3',
+        displayName: 'survivor.mp3'
+    };
+    await playlistModule.saveTrack(survivor);
+    const first = await playlistModule.createPlaylist('Delete test one');
+    const second = await playlistModule.createPlaylist('Delete test two');
+    await playlistModule.addTrackToPlaylist(first.id, doomed.id);
+    await playlistModule.addTrackToPlaylist(first.id, survivor.id);
+    await playlistModule.addTrackToPlaylist(second.id, doomed.id);
+    const expectedAffected = (await playlistModule.getAllPlaylists())
+        .filter(playlist => playlist.trackIds.includes(doomed.id)).length;
+
+    const result = await playlistModule.deleteTrackPermanently(doomed.id);
+
+    assert.equal(result.affectedPlaylists, expectedAffected);
+    assert.equal(await playlistModule.getTrack(doomed.id), null);
+    assert.ok(await playlistModule.getTrack(survivor.id));
+    assert.deepEqual((await playlistModule.getPlaylist(first.id)).trackIds,
+        [survivor.id]);
+    assert.deepEqual((await playlistModule.getPlaylist(second.id)).trackIds, []);
 });
 
 test('removing MSYNC persists without deleting Track audio or hash', async () => {

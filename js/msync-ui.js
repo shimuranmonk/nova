@@ -355,6 +355,11 @@ export function initializeMsyncUI() {
             );
         }
     });
+    document.addEventListener('stored-tracks-changed', () => {
+        const preferredId = selectedTrack?.id || null;
+        refreshMsyncTracks(preferredId).catch(error =>
+            console.error('Unable to refresh MSYNC tracks after deletion:', error));
+    });
     refreshMsyncTracks().catch(error => {
         console.error('Unable to load MSYNC tracks:', error);
         showToast('Unable to load MSYNC tracks');

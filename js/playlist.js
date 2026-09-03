@@ -578,6 +578,59 @@ export async function deletePlaylist(id) {
 }
 
 /*
+ * Permanently delete one stored audio track and remove its stable ID from
+ * every playlist. The audio Blob and all track metadata (including MSYNC)
+ * are part of the track record and are deleted with it.
+ */
+export async function deleteTrackPermanently(trackId) {
+    if (!trackId) {
+        throw new Error('Track ID is required');
+    }
+
+    const db = await openPlaylistDatabase();
+
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(
+            [TRACK_STORE, PLAYLIST_STORE],
+            'readwrite'
+        );
+        const trackStore = transaction.objectStore(TRACK_STORE);
+        const playlistStore = transaction.objectStore(PLAYLIST_STORE);
+        const playlistsRequest = playlistStore.getAll();
+        let affectedPlaylists = 0;
+
+        playlistsRequest.onsuccess = () => {
+            for (const rawPlaylist of playlistsRequest.result || []) {
+                const playlist = normalizePlaylistRecord(rawPlaylist);
+                const trackIds = playlist.trackIds.filter(id => id !== trackId);
+                if (trackIds.length !== playlist.trackIds.length) {
+                    affectedPlaylists++;
+                    playlistStore.put({
+                        ...playlist,
+                        trackIds,
+                        updatedAt: Date.now()
+                    });
+                }
+            }
+            trackStore.delete(trackId);
+        };
+
+        playlistsRequest.onerror = () => {
+            transaction.abort();
+        };
+        transaction.oncomplete = () => resolve({ trackId, affectedPlaylists });
+        transaction.onerror = () => reject(
+            transaction.error || playlistsRequest.error ||
+            new Error('Unable to delete stored track')
+        );
+        transaction.onabort = () => reject(
+            transaction.error || playlistsRequest.error ||
+            new Error('Track deletion was aborted')
+        );
+    });
+}
+
+/*
  * Add one track ID to a playlist.
  *
  * Track order is simply the order inside trackIds[].

@@ -10,7 +10,8 @@ import {
     removeTrackFromPlaylist,
     moveTrackInPlaylist,
     getAllTracks,
-    findTrackByHash
+    findTrackByHash,
+    deleteTrackPermanently
 } from './playlist.js';
 
 import { showToast } from './utils.js';
@@ -575,6 +576,75 @@ export function closePlaylistTracksView() {
     showPlaylistListView();
 }
 
+export async function openStoredTracksView() {
+    const listView = document.getElementById('playlist-manager-list-view');
+    const tracksView = document.getElementById('playlist-manager-tracks-view');
+    const libraryView = document.getElementById('playlist-manager-library-view');
+    const list = document.getElementById('playlist-library-list');
+    if (!listView || !tracksView || !libraryView || !list) return;
+
+    listView.classList.add('hidden');
+    tracksView.classList.add('hidden');
+    libraryView.classList.remove('hidden');
+    list.innerHTML = '<div class="playlist-manager-empty">Loading stored tracks...</div>';
+
+    try {
+        const storedTracks = await getAllTracks();
+        storedTracks.sort((a, b) => String(a.displayName || a.filename || '')
+            .localeCompare(String(b.displayName || b.filename || '')));
+        if (!storedTracks.length) {
+            list.innerHTML = '<div class="playlist-manager-empty">No stored audio tracks</div>';
+            return;
+        }
+        list.innerHTML = '';
+        for (const track of storedTracks) {
+            const row = document.createElement('div');
+            row.className = 'playlist-track-row';
+            const info = document.createElement('div');
+            info.className = 'playlist-track-info';
+            const name = document.createElement('div');
+            name.className = 'playlist-track-name';
+            name.textContent = track.displayName || track.filename || 'Unknown Track';
+            const meta = document.createElement('div');
+            meta.className = 'playlist-track-meta';
+            meta.textContent = `${formatPlaylistDuration(track.duration || 0)}${track.metadata?.msync ? ' • MSYNC attached' : ''}`;
+            info.append(name, meta);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'playlist-manager-action-btn playlist-manager-delete-btn';
+            deleteBtn.textContent = 'Delete permanently';
+            deleteBtn.addEventListener('click', () =>
+                deleteStoredTrackFromUI(track.id, name.textContent));
+            row.append(info, deleteBtn);
+            list.appendChild(row);
+        }
+    }
+    catch (error) {
+        console.error('Unable to load stored tracks:', error);
+        list.innerHTML = '<div class="playlist-manager-empty">Unable to load stored tracks</div>';
+    }
+}
+
+async function deleteStoredTrackFromUI(trackId, trackName) {
+    const confirmed = window.confirm(
+        `Permanently delete "${trackName}"?\n\n` +
+        'This removes the MP3, its MSYNC attachment, and the track from every playlist. This cannot be undone.'
+    );
+    if (!confirmed) return;
+
+    try {
+        const result = await deleteTrackPermanently(trackId);
+        await openStoredTracksView();
+        document.dispatchEvent(new CustomEvent('stored-tracks-changed'));
+        showToast(`Track deleted from storage${result.affectedPlaylists ? ` and ${result.affectedPlaylists} playlist${result.affectedPlaylists === 1 ? '' : 's'}` : ''}`);
+    }
+    catch (error) {
+        console.error('Unable to permanently delete track:', error);
+        showToast('Stored track was not deleted');
+    }
+}
+
 
 function showPlaylistListView() {
     const listView =
@@ -583,12 +653,19 @@ function showPlaylistListView() {
     const tracksView =
         document.getElementById('playlist-manager-tracks-view');
 
+    const libraryView =
+        document.getElementById('playlist-manager-library-view');
+
     if (listView) {
         listView.classList.remove('hidden');
     }
 
     if (tracksView) {
         tracksView.classList.add('hidden');
+    }
+
+    if (libraryView) {
+        libraryView.classList.add('hidden');
     }
 }
 

@@ -1414,6 +1414,15 @@
                 <button
                     type="button"
                     class="music-manage-btn"
+                    onclick="openStoredTracksView()"
+                >
+                    Stored Tracks
+                </button>
+
+
+                <button
+                    type="button"
+                    class="music-manage-btn"
                     onclick="createPlaylistFromUI()"
                 >
                     New Playlist
@@ -1481,6 +1490,27 @@
                 class="playlist-tracks-list"
             ></div>
 
+        </div>
+
+
+        <div
+            id="playlist-manager-library-view"
+            class="hidden"
+        >
+            <div class="playlist-tracks-header">
+                <button
+                    type="button"
+                    class="playlist-manager-action-btn"
+                    onclick="closePlaylistTracksView()"
+                >
+                    Back
+                </button>
+                <div class="playlist-tracks-title">Stored Tracks</div>
+            </div>
+            <div
+                id="playlist-library-list"
+                class="playlist-tracks-list"
+            ></div>
         </div>
 
     </div>

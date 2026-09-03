@@ -71,7 +71,8 @@ import {
     closePlaylistManager,
     createPlaylistFromUI,
     renamePlaylistFromUI,
-    closePlaylistTracksView
+    closePlaylistTracksView,
+    openStoredTracksView
 } from './playlist-ui.js';
 
 
@@ -648,6 +649,9 @@ window.renamePlaylistFromUI =
 
 window.closePlaylistTracksView =
     closePlaylistTracksView;
+
+window.openStoredTracksView =
+    openStoredTracksView;
 
 
 
