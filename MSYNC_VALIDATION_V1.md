@@ -120,3 +120,5 @@ disappear from the next receipt. Confirming new warnings updates the receipt
 and Track `updatedAt`; declining leaves the session stopped and the attachment
 unchanged. A newer parser version forces complete revalidation. Music mode
 ignores the receipt and all other MSYNC data.
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.
