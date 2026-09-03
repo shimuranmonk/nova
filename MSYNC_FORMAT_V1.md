@@ -435,26 +435,27 @@ When audio reaches its actual end without an explicit `STOP`, Nova:
 Explicit `STOP`, manual Stop, playback failure, and Bluetooth disconnection use
 the same safety cleanup. Only the displayed completion reason differs.
 
-## Missing built-in drill behavior
+## Missing referenced drill behavior
 
 Nova strictly validates every `[DRILLS]` reference before attachment and again
 before starting a session.
 
 Rules:
 
-1. Every referenced value must match an installed built-in drill key.
+1. Every `BUILTIN:` value must match an installed built-in drill key, and every
+   `CUSTOM:` value must match an installed custom-drill UUID.
 2. The resolved drill must contain valid executable ball data.
 3. A missing or malformed drill blocks attachment during import.
 4. Nova reports the source line, readable alias, and missing drill key.
 5. Nova does not skip, substitute, or resolve a drill by a similar display
    name.
 6. A stored attachment is revalidated before every session in case the
-   installed drill library has changed.
+   installed built-in or custom drill library has changed.
 7. If a required drill is unavailable at Start, Start is blocked.
 8. If a drill becomes unavailable unexpectedly during an active session, Nova
    stops the robot and music and ends the session with an error.
 9. Inline drills validate from their contained definitions and do not depend
-   on the installed built-in drill library.
+   on an installed drill library.
 
 ## Comments and blank lines
 
