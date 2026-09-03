@@ -299,6 +299,34 @@ Rules:
 5. Audio completion, missing drills, playback failure, and disconnection retain
    their fixed safety behavior and are not configurable in v1.
 
+## AUDIO section
+
+`[AUDIO]` is required and contains exactly three required fields:
+
+```text
+[AUDIO]
+FILENAME=eye-of-the-trainer.mp3
+SHA256=8fd41e9802b5c417b45a91c90a12cdb074377d4f6a9c4d1e753624cbb3892601
+DURATION=03:20.000
+```
+
+`FILENAME` is the human-readable intended audio filename, `SHA256` is the exact
+audio-content identity, and `DURATION` is the authored timeline duration.
+
+Filename rules:
+
+1. The value is a filename with an extension, not a folder path.
+2. Its maximum length is 255 characters.
+3. Surrounding whitespace is removed and an empty value is invalid.
+4. Windows, Unix, and relative folder paths are invalid.
+5. Filename comparison is case-insensitive.
+6. When SHA-256 matches but the selected Track filename differs, Nova allows
+   attachment with a warning because audio files may be renamed.
+7. A hash mismatch rejects attachment regardless of the filename.
+
+The existing mandatory SHA-256 and duration rules apply. Fields may appear in
+any order. Duplicate and unknown `[AUDIO]` fields are validation errors.
+
 ## No ball-specific flavors in v1
 
 MSYNC v1 flavors do not support ball-specific overrides. Every supplied
