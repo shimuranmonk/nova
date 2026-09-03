@@ -1,7 +1,10 @@
 # MSYNC Phase 1 — Format v1 Decisions
 
-Status: in progress. This document records approved format decisions as the
-MSYNC v1 structure is frozen step by step.
+Status: approved and frozen for MSYNC v1.
+
+The canonical benchmark file is `MSYNC_V1_EXAMPLE.msync`. Future changes to
+this contract require an explicit format review and must preserve v1 files or
+introduce a new format version.
 
 ## Top-level file structure
 
