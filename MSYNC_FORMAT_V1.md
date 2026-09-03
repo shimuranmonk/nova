@@ -37,6 +37,44 @@ MSYNC_VERSION=1   required; exactly once and before all sections
 MSYNC v1 supports both forms. Unknown sections, duplicate singleton sections,
 and duplicate flavor or inline names are validation errors.
 
+## Stored MSYNC envelope
+
+A validated external file is attached to a Track at `Track.metadata.msync` in
+this form:
+
+```text
+Track.metadata.msync
+├── formatVersion
+├── sourceFilename
+├── sourceText
+├── sourceSha256
+├── importedAt
+└── parsed
+    ├── info
+    ├── audio
+    ├── session
+    ├── drills
+    ├── flavors
+    ├── inline
+    └── cues
+```
+
+Rules:
+
+1. Only successfully validated MSYNC files are stored.
+2. `sourceText` is the exact imported file and remains authoritative.
+3. `parsed` is a validated execution cache derived from `sourceText`.
+4. Nova does not silently edit `sourceText`.
+5. Nova may rebuild `parsed` from `sourceText` when the parser changes.
+6. `sourceSha256` fingerprints the MSYNC source text and confirms which source
+   produced the parsed cache.
+7. The audio fingerprint is separate from `sourceSha256` and belongs inside
+   `parsed.audio`.
+8. The external file does not contain Nova's local Track ID. The user chooses
+   the target Track during import.
+9. Replacing an attachment replaces the complete `metadata.msync` object only
+   after the new file validates successfully.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
