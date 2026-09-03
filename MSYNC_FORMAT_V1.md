@@ -353,6 +353,25 @@ Rules:
 9. Inline drills validate from their contained definitions and do not depend
    on the installed built-in drill library.
 
+## Comments and blank lines
+
+MSYNC v1 supports full-line `#` comments.
+
+Rules:
+
+1. A comment begins when the first non-space character on a line is `#`.
+2. The complete comment line is ignored by the parser.
+3. Indented comments and blank lines are allowed.
+4. Inline comments are not allowed; content after a value is not silently
+   discarded.
+5. Semicolons are field separators in inline `BALL` definitions and are not
+   comment markers.
+6. Comments remain unchanged in `sourceText` and are absent from parsed
+   execution data.
+7. Comments may appear before the version declaration, between sections, and
+   inside sections.
+8. `MSYNC_VERSION=1` is the first non-comment, nonblank line.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
