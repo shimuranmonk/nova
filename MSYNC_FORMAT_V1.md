@@ -700,3 +700,5 @@ REST    stop robot balls temporarily; music and timeline continue
 PAUSE   pause the complete MSYNC session, including music and timeline
 STOP    end the MSYNC session
 ```
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.
