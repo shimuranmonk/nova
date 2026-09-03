@@ -44,3 +44,32 @@ a Track merely because audio is missing or unplayable. A record declaring a
 future unsupported `schemaVersion` is not overwritten; safely understood fields
 may remain available for playback while editing is blocked with an upgrade
 compatibility message. No bulk record rewrite occurs at startup.
+
+## Immutable custom-drill UUID migration
+
+MSYNC v1 supports built-in drills, saved Custom A/B/C drills, and portable
+inline drills. Custom references require a stable identity independent of the
+existing editable name and internal key.
+
+On custom-drill load, Nova builds a normalized copy of the complete custom list
+in memory. It preserves every name and key and assigns `crypto.randomUUID()` to
+each genuine legacy entry without an ID, checking generated values for
+uniqueness. It then stores the complete normalized list with one
+`localStorage.setItem()` operation. Existing valid UUIDs are preserved and
+normalized to lowercase; drill levels and ball data remain under their current
+keys and are not moved or renamed.
+
+New custom drills receive an ID at creation. Editing, renaming, and category
+moves preserve it. Save As and duplication create a new ID. Deletion removes
+the association, and recreating a deleted drill produces a new identity.
+
+A malformed existing ID is reported rather than replaced because MSYNC may
+already reference it. Duplicate existing IDs are corruption and block custom
+MSYNC resolution. A generated collision is regenerated before storage. If
+storage fails, the prior list remains authoritative; built-in and inline MSYNC
+remain available while custom references are disabled.
+
+The custom-drill interface provides `Copy MSYNC Reference`, yielding
+`CUSTOM:<uuid>` for use in external files. Current CSV export does not preserve
+UUIDs, so custom references are installation-local. Deleting and reimporting a
+custom drill creates a new identity. `INLINE` remains the portable choice.
