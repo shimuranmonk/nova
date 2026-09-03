@@ -20,6 +20,45 @@ export function isValidCustomDrillId(value) {
         UUID_PATTERN.test(value);
 }
 
+function isValidCustomDrillBackup(value) {
+    if (!value) {
+        return false;
+    }
+
+    try {
+        const parsed = JSON.parse(value);
+
+        return parsed &&
+            typeof parsed === 'object' &&
+            !Array.isArray(parsed) &&
+            CUSTOM_CATEGORIES.every(category =>
+                Array.isArray(parsed[category]) &&
+                parsed[category].every(entry =>
+                    entry &&
+                    typeof entry === 'object' &&
+                    !Array.isArray(entry) &&
+                    Boolean(entry.name) &&
+                    Boolean(entry.key)
+                )
+            );
+    }
+    catch (error) {
+        return false;
+    }
+}
+
+export function createCustomDrillMigrationReport(result) {
+    const error = result?.error;
+    const reason = error?.message || 'Unknown migration error';
+
+    return [
+        'Nova custom-drill UUID migration failed.',
+        `Reason: ${reason}`,
+        'Original custom drills were retained or restored.',
+        'Custom MSYNC references are disabled until this is resolved.'
+    ].join('\n');
+}
+
 export function createCustomDrillId(
     cryptoProvider = globalThis.crypto
 ) {
@@ -143,7 +182,9 @@ export function migrateCustomDrillIds(
             };
         }
 
-        if (!storage.getItem(CUSTOM_DATA_BACKUP_KEY)) {
+        if (!isValidCustomDrillBackup(
+            storage.getItem(CUSTOM_DATA_BACKUP_KEY)
+        )) {
             storage.setItem(
                 CUSTOM_DATA_BACKUP_KEY,
                 originalText

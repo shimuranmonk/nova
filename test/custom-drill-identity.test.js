@@ -6,6 +6,7 @@ import {
     CUSTOM_DATA_KEY,
     CUSTOM_DATA_MIGRATION_KEY,
     CUSTOM_DATA_PENDING_KEY,
+    createCustomDrillMigrationReport,
     findCustomDrillById,
     findCustomDrillByKey,
     migrateCustomDrillIds,
@@ -125,6 +126,38 @@ test('migration writes a backup, verifies data, and marks completion', () => {
     assert.equal(result.data['custom-a'][0].id, IDS[0]);
 });
 
+test('migration replaces an invalid backup but preserves a valid one', () => {
+    const originalText = JSON.stringify(legacyData());
+    const invalidStorage = new MemoryStorage({
+        [CUSTOM_DATA_KEY]: originalText,
+        [CUSTOM_DATA_BACKUP_KEY]: 'not-json'
+    });
+
+    migrateCustomDrillIds(invalidStorage, () => IDS[0]);
+
+    assert.equal(
+        invalidStorage.getItem(CUSTOM_DATA_BACKUP_KEY),
+        originalText
+    );
+
+    const validBackup = JSON.stringify({
+        'custom-a': [],
+        'custom-b': [],
+        'custom-c': []
+    });
+    const validStorage = new MemoryStorage({
+        [CUSTOM_DATA_KEY]: originalText,
+        [CUSTOM_DATA_BACKUP_KEY]: validBackup
+    });
+
+    migrateCustomDrillIds(validStorage, () => IDS[0]);
+
+    assert.equal(
+        validStorage.getItem(CUSTOM_DATA_BACKUP_KEY),
+        validBackup
+    );
+});
+
 test('migration restores the current original after a primary write failure', () => {
     const originalText = JSON.stringify(legacyData());
     const storage = new MemoryStorage({
@@ -160,4 +193,14 @@ test('finds custom drills by current key or immutable ID', () => {
         findCustomDrillById(normalized, IDS[0].toUpperCase()).key,
         'cust_A_Serve_Practice_1'
     );
+});
+
+test('creates a copyable migration failure report without drill data', () => {
+    const report = createCustomDrillMigrationReport({
+        error: new Error('simulated quota failure')
+    });
+
+    assert.match(report, /simulated quota failure/);
+    assert.match(report, /retained or restored/);
+    assert.doesNotMatch(report, /Serve Practice/);
 });

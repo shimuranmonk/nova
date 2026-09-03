@@ -1,6 +1,7 @@
 import { DEFAULT_DRILLS, RPM_MIN, RPM_MAX, SPIN_LIMITS, CATEGORIES } from './constants.js';
 import { showToast } from './utils.js';
 import {
+    createCustomDrillMigrationReport,
     createCustomDrillId,
     migrateCustomDrillIds
 } from './custom-drill-identity.js';
@@ -78,11 +79,19 @@ export function initData() {
     }
 
     if (!customMigration.ok) {
+        const migrationReport =
+            createCustomDrillMigrationReport(customMigration);
+
         console.error(
-            'Custom drill ID migration failed:',
+            migrationReport,
             customMigration.error
         );
         showToast('Custom drill MSYNC references are unavailable');
+
+        window.prompt(
+            'Copy this MSYNC migration report:',
+            migrationReport
+        );
     }
     normalizeDrills();
 }
