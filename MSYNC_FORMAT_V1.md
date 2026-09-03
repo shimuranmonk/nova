@@ -240,6 +240,36 @@ Example:
 `FASTER` affects `WARMUP` only. `ATTACK` begins with its original parameters
 unless another `FLAVOR` cue follows its activation.
 
+## INFO section
+
+`[INFO]` is optional and purely descriptive:
+
+```text
+[INFO]
+TITLE=Eye of the Trainer
+AUTHOR=Captain
+DESCRIPTION=Warmup, attack, recovery, and finishing sequence.
+```
+
+Fields:
+
+```text
+TITLE         required when [INFO] exists; maximum 100 characters
+AUTHOR        optional; maximum 100 characters
+DESCRIPTION   optional; maximum 500 characters
+```
+
+Rules:
+
+1. If `[INFO]` is absent, Nova displays the selected Track's `displayName`.
+2. Omitted optional fields produce no placeholder author or description.
+3. Each value occupies one line and is stored and displayed as UTF-8 text.
+4. Surrounding whitespace is removed and empty values are invalid.
+5. Duplicate and unknown `[INFO]` fields are validation errors.
+6. Only the first `=` separates the field name from its value, so later `=`
+   characters belong to the value.
+7. These fields never affect robot, audio, or scheduler behavior.
+
 ## No ball-specific flavors in v1
 
 MSYNC v1 flavors do not support ball-specific overrides. Every supplied
