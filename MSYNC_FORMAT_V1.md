@@ -260,6 +260,37 @@ Before the MSYNC v1 format is finalized, revisit the decision to exclude
 ball-specific flavor overrides and confirm that uniform flavors plus inline
 drills cover the intended MVP sessions.
 
+## Simultaneous cue ordering
+
+Cues with the same timestamp execute from top to bottom in file order.
+
+Rules for one timestamp:
+
+1. At most one drill-selection command (`DRILL` or `INLINE`) is allowed.
+2. At most one `FLAVOR` command is allowed.
+3. At most one `REST` command is allowed.
+4. A drill-selection command must appear before the `FLAVOR` intended for it.
+5. `STOP` must be the only command at its timestamp.
+6. Duplicate and contradictory commands are validation errors.
+7. When combined, commands use this order:
+
+```text
+DRILL or INLINE
+FLAVOR
+REST
+```
+
+Example:
+
+```text
+01:30.000 INLINE=SHORT_BACKSPIN
+01:30.000 FLAVOR=INTENSE
+01:30.000 REST=2
+```
+
+Nova prepares the flavored inline drill, keeps robot firing suspended for two
+seconds while music and cue processing continue, and then starts that drill.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
