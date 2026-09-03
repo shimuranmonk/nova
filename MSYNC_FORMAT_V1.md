@@ -270,6 +270,35 @@ Rules:
    characters belong to the value.
 7. These fields never affect robot, audio, or scheduler behavior.
 
+## SESSION section
+
+`[SESSION]` is optional and supports two MVP controls:
+
+```text
+[SESSION]
+COUNTDOWN=4
+CYCLE_PAUSE=1
+```
+
+`COUNTDOWN` is the number of whole seconds before music and the cue timeline
+start together. It ranges from 0 through 10 and defaults to 4. The countdown
+occurs before timeline position `00:00.000`; zero starts immediately.
+
+`CYCLE_PAUSE` is the delay in seconds after one complete drill cycle before the
+active drill repeats. It ranges from 0 through 10, accepts up to three decimal
+places, and defaults to 1. It does not insert delays between individual balls.
+
+Rules:
+
+1. A cue selecting a new drill changes the active drill at its scheduled time
+   rather than waiting for `CYCLE_PAUSE`.
+2. `REST` remains timeline-controlled and independently suspends robot firing.
+3. Both fields affect MSYNC mode only.
+4. Duplicate, unknown, out-of-range, or incorrectly formatted fields are
+   validation errors.
+5. Audio completion, missing drills, playback failure, and disconnection retain
+   their fixed safety behavior and are not configurable in v1.
+
 ## No ball-specific flavors in v1
 
 MSYNC v1 flavors do not support ball-specific overrides. Every supplied
