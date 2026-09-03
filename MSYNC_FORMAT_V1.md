@@ -173,6 +173,43 @@ MSYNC attachment from breaking after a custom-drill rename and keeps downloaded
 files portable. A future format may reference saved custom drills after Nova
 gives them immutable IDs.
 
+## Inline drill syntax
+
+An inline drill defines a complete portable drill using Nova's published ball
+parameters:
+
+```text
+[INLINE:SHORT_BACKSPIN]
+NAME=Short Backspin Pattern
+RANDOM=false
+
+BALL=1;SPEED=5;SPIN=6;TYPE=back;HEIGHT=20;DROP=-4;BPM=45;REPS=2
+BALL=2;SPEED=7;SPIN=4;TYPE=top;HEIGHT=45;DROP=4;BPM=55;REPS=1
+```
+
+Rules:
+
+1. The section name is the unique alias used by `INLINE` cues.
+2. `NAME` is required and human-readable.
+3. `RANDOM` is optional and defaults to `false`.
+4. At least one `BALL` line is required.
+5. Every `BALL` line contains a ball number plus `SPEED`, `SPIN`, `TYPE`,
+   `HEIGHT`, `DROP`, `BPM`, and `REPS`.
+6. Parameter names, values, ranges, and increments match Nova's published
+   technical parameters.
+7. Named fields after the ball number may appear in any order.
+8. Unknown fields and fields repeated on the same line are validation errors.
+9. Ball numbers begin at 1, are consecutive, and execute in ascending order.
+10. Repeating a Ball number defines alternative balls for that numbered step;
+    Nova randomly selects one alternative whenever it executes that step.
+11. `RANDOM=true` shuffles the numbered step order. This is independent of
+    alternative balls that share a number.
+12. An activated inline drill repeats until replaced or stopped, like a
+    referenced built-in drill.
+13. A flavor may override the active inline drill.
+14. `SCATTER` and `ACTIVE` are excluded from MSYNC v1 inline drills because
+    they are not part of the selected published parameter set.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
