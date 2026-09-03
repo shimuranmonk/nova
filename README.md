@@ -25,6 +25,7 @@ Web Bluetooth is required to connect to the Nova S Pro. iPhone/iOS browsers are 
    - Reps
    - Time
    - Music
+   - MSYNC
 5. Select a drill.
 6. The countdown begins and the robot starts the selected drill.
 
@@ -42,19 +43,24 @@ Runs the selected drill until the specified time expires.
 
 ### Music
 
-Runs the selected drill for the duration of a selected music playlist.
+Runs the selected drill for the duration of either a saved playlist or a
+temporary Quick Music selection. Music mode does not use the drill-pause
+setting.
 
 To use Music mode:
 
-1. Select **Music**.
-2. Tap **Choose Music**.
-3. Select one or more MP3, WAV, or other browser-supported audio files.
-4. Select a drill.
-5. Music begins with the countdown.
-6. The robot continues running while the playlist plays.
-7. When the final track ends, the robot stops automatically.
+1. Open the menu and select **Manage Playlists** to create a saved playlist
+   and add audio files. **Stored Tracks** lists saved audio and provides the
+   permanent-delete control.
+2. Select **Music**.
+3. In the left panel, choose a saved playlist and tap **Use Saved Playlist**;
+   or use **Choose Music** in the right panel for temporary audio that is not
+   saved to the database.
+4. Select a drill. Music and the robot begin after the countdown.
+5. The robot stops automatically when the final track ends.
 
-The same selected playlist can be reused for succeeding drills without selecting the files again.
+The selected music can be reused for succeeding drills without selecting it
+again.
 
 During the session, Nova displays:
 
@@ -64,7 +70,31 @@ During the session, Nova displays:
 - Remaining playlist time
 - Total playlist duration
 
-Pausing the drill also pauses the music. Resuming continues both.
+### MSYNC
+
+MSYNC runs externally authored `.msync` cue files against audio saved through
+Playlist Manager. Music mode ignores MSYNC attachments; synchronization is
+used only in the MSYNC tab.
+
+To use MSYNC mode:
+
+1. Save the intended audio in **Manage Playlists**, then select **MSYNC**.
+2. Choose the stored track. Use **Copy Audio Hash** when authoring the external
+   `.msync` file.
+3. Tap **Choose .msync File** and select the matching file. Validation errors
+   must be corrected; warnings require explicit acceptance.
+4. Adjust **Robot Lead** if needed. The default `1.300` seconds compensates for
+   measured command-to-ball launch delay without changing the music timeline.
+5. Use **Start Simulation** to verify the cues without robot commands.
+6. Connect the robot, clear the table, and use **Start Live Robot** only after
+   the simulation is correct.
+
+The external file remains authoritative. Editing Robot Lead in the tab changes
+only the current run and does not rewrite the attached file. See
+[`MSYNC_FORMAT_V1.md`](MSYNC_FORMAT_V1.md) for the format and
+[`MSYNC_V1_EXAMPLE.msync`](MSYNC_V1_EXAMPLE.msync) for a working example.
+Validation behavior is documented in
+[`MSYNC_VALIDATION_V1.md`](MSYNC_VALIDATION_V1.md).
 
 ## Features
 
