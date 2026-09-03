@@ -580,6 +580,28 @@ compensation is implemented. Until then, a cue timestamp means begin the
 transition at that audio time; it does not claim that the first physical ball
 exits at that exact millisecond.
 
+## Pause and Resume
+
+Pause and Resume are MSYNC-tab controls, not scheduled file commands.
+
+On Pause, Nova records the exact audio position, pauses audio, freezes the cue
+scheduler, cancels pending repeat timers, sends the robot stop command, and
+preserves the active drill, flavor, processed-cue position, and any remaining
+REST state. No cues execute while paused.
+
+On Resume, Nova first verifies that the robot remains connected. Audio and cue
+timing continue together from the same position. Processed cues do not execute
+again. If paused during a REST, only its remaining timeline duration continues.
+Otherwise the active drill restarts from the beginning of its cycle because
+Nova cannot reliably resume midway through a robot drill packet. The active
+flavor remains applied.
+
+Resume does not repeat the initial countdown. Stop while paused ends the
+session. Disconnection while paused prevents Resume and requires reconnection
+and a new session from timestamp zero. Seeking and scrubbing are excluded from
+the MVP. Repeated Pause or Resume actions are idempotent, and neither changes
+stored MSYNC data.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
