@@ -1,0 +1,64 @@
+# Canonical approved MSYNC v1 benchmark
+MSYNC_VERSION=1
+
+[INFO]
+TITLE=Eye of the Trainer
+AUTHOR=Captain
+DESCRIPTION=Opening music, warmup, attack, rest, inline variation, and finish.
+
+[AUDIO]
+FILENAME=eye-of-the-trainer.mp3
+SHA256=8fd41e9802b5c417b45a91c90a12cdb074377d4f6a9c4d1e753624cbb3892601
+DURATION=03:20.000
+
+[SESSION]
+COUNTDOWN=4
+CYCLE_PAUSE=1
+ROBOT_LEAD=1.300
+
+[DRILLS]
+DRL_WARMUP=BUILTIN:push(b);LEVEL=1
+DRL_ATTACK=BUILTIN:loop(f)-drive(b);LEVEL=2
+
+[FLAVOR:FLV_FASTER]
+FLV_SPEED=8
+FLV_BPM=70
+
+[FLAVOR:FLV_INTENSE]
+FLV_TYPE=top
+FLV_SPEED=8
+FLV_SPIN=4
+FLV_HEIGHT=45
+FLV_DROP=2
+FLV_BPM=74
+FLV_REPS=2
+
+[INLINE:INL_SHORT_BACKSPIN]
+NAME=Short Backspin Pattern
+RANDOM=false
+BALL=1;SPEED=5;SPIN=4;TYPE=back;HEIGHT=20;DROP=-4;BPM=45;REPS=2
+BALL=2;SPEED=7;SPIN=5;TYPE=top;HEIGHT=45;DROP=4;BPM=55;REPS=1
+
+[CUES]
+# Let the musical introduction play before starting the robot.
+00:15.000 DRILL=DRL_WARMUP
+00:15.000 FLAVOR=FLV_FASTER
+
+# Music and timeline continue during this two-second robot rest.
+00:45.000 REST=2
+
+# Selecting a new drill clears FLV_FASTER.
+01:00.000 DRILL=DRL_ATTACK
+
+# Load a portable pattern and flavor it at the same timestamp.
+01:30.000 INLINE=INL_SHORT_BACKSPIN
+01:30.000 FLAVOR=FLV_INTENSE
+
+# Restore the original inline parameters without changing the drill.
+02:00.000 FLAVOR=NONE
+
+02:40.000 REST=3
+03:00.000 DRILL=DRL_ATTACK
+
+# End slightly before the audio finishes.
+03:18.000 STOP

@@ -1,5 +1,10 @@
 import { DEFAULT_DRILLS, RPM_MIN, RPM_MAX, SPIN_LIMITS, CATEGORIES } from './constants.js';
 import { showToast } from './utils.js';
+import {
+    createCustomDrillMigrationReport,
+    createCustomDrillId,
+    migrateCustomDrillIds
+} from './custom-drill-identity.js';
 
 export let currentDrills = {};
 export let userCustomDrills = { "custom-a": [], "custom-b": [], "custom-c": [] };
@@ -47,6 +52,7 @@ export function initData() {
     const savedDrills = localStorage.getItem('custom_drills');
     const userDefaults = localStorage.getItem('user_defaults');
     const customData = localStorage.getItem('custom_data');
+    const customMigration = migrateCustomDrillIds(localStorage);
     
     const savedOrder = localStorage.getItem('drill_order');
     if (savedOrder) {
@@ -60,7 +66,33 @@ export function initData() {
 
     currentDrills = savedDrills ? JSON.parse(savedDrills) : 
                    (userDefaults ? JSON.parse(userDefaults) : JSON.parse(JSON.stringify(DEFAULT_DRILLS)));
-    if (customData) userCustomDrills = JSON.parse(customData);
+    if (customMigration.ok && customMigration.data) {
+        userCustomDrills = customMigration.data;
+    }
+    else if (customData) {
+        try {
+            userCustomDrills = JSON.parse(customData);
+        }
+        catch (error) {
+            console.error('Unable to load custom drill list:', error);
+        }
+    }
+
+    if (!customMigration.ok) {
+        const migrationReport =
+            createCustomDrillMigrationReport(customMigration);
+
+        console.error(
+            migrationReport,
+            customMigration.error
+        );
+        showToast('Custom drill MSYNC references are unavailable');
+
+        window.prompt(
+            'Copy this MSYNC migration report:',
+            migrationReport
+        );
+    }
     normalizeDrills();
 }
 
@@ -207,7 +239,11 @@ export function importCustomDrills(csvText) {
                     
                     // UPDATED LIMIT: 100
                     if (!exists && newCustomData[category].length < 100) {
-                        newCustomData[category].push({ name: name, key: key });
+                        newCustomData[category].push({
+                            id: createCustomDrillId(),
+                            name: name,
+                            key: key
+                        });
                     }
                     
                     customBuilder[key] = { 1: {}, 2: {}, 3: {} }; 

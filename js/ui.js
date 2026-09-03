@@ -12,6 +12,7 @@ import {
 import { bleState } from './bluetooth.js';
 import { showToast, formatDuration } from './utils.js'; 
 import { openEditor } from './editor.js';
+import { createCustomDrillId } from './custom-drill-identity.js';
 
 // --- NEW: Handle Create New Drill ---
 window.handleCreateNewDrill = (category) => {
@@ -37,7 +38,11 @@ window.handleCreateNewDrill = (category) => {
     const catChar = category.split('-')[1].toUpperCase();
     const newKey = `cust_${catChar}_${newName.replace(/\s+/g, '_')}_${Date.now()}`;
 
-    userCustomDrills[category].push({ name: newName, key: newKey });
+    userCustomDrills[category].push({
+        id: createCustomDrillId(),
+        name: newName,
+        key: newKey
+    });
 
     currentDrills[newKey] = { 
         1: [[[4123, 2233, 50, 0, 50, 1, 1, 5, 2, 'top']]], 
@@ -97,7 +102,7 @@ window.handleTabDrop = (e, targetCat) => {
     currentDrills[newKey] = JSON.parse(JSON.stringify(currentDrills[key]));
     
     userCustomDrills[targetCat].push({
-        name: drillObj.name,
+        ...drillObj,
         key: newKey
     });
 
