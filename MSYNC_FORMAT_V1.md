@@ -524,6 +524,35 @@ FLV_REPS     1 to 200; step 1
 An omitted flavor variable leaves the original drill parameter unchanged.
 Flavor values are absolute Nova values, not percentages or multipliers.
 
+Flavor sections use names beginning with `FLV_`:
+
+```text
+[FLAVOR:FLV_INTENSE]
+FLV_TYPE=top
+FLV_SPEED=8
+FLV_SPIN=6
+FLV_HEIGHT=45
+FLV_DROP=2
+FLV_BPM=74
+FLV_REPS=2
+```
+
+After `FLV_`, the name begins with an uppercase letter and contains only
+uppercase letters, digits, and underscores. Total length is at most 40
+characters. `FLV_` alone is invalid, and names are case-sensitive and unique.
+
+Every parameter is optional, but a flavor contains at least one. Each may
+appear at most once, and order does not matter. Numeric values must follow the
+documented ranges and increments exactly; Nova neither rounds nor clamps them.
+`FLV_TYPE` is lowercase `top` or `back`. Unknown and duplicate variables are
+validation errors.
+
+Nova validates the resulting Speed/Spin combination for every affected ball
+because maximum legal Spin depends on Speed. If a flavor would make any ball
+invalid, validation reports the flavor, drill, level, and ball rather than
+silently reducing Spin. Undefined cue references are errors; unused flavors
+produce warnings.
+
 ## Active drill behavior
 
 A `DRILL` or `INLINE` cue selects the active drill. The active drill repeats
