@@ -152,6 +152,27 @@ Rules:
     of playback.
 11. The declared duration is the authoring and cue-validation boundary.
 
+## Existing drill references
+
+For the MSYNC v1 MVP, `[DRILLS]` may reference built-in Nova drills only.
+
+```text
+[DRILLS]
+WARMUP=A01
+ATTACK=A05
+```
+
+The name on the left is a unique, readable alias used by cues. The value on
+the right is the existing built-in Nova drill key. Custom patterns required by
+an external MSYNC file must be defined in `[INLINE:name]` instead.
+
+Current custom-drill keys contain their name and a timestamp, and Nova creates
+a new key when a custom drill is renamed. They are therefore unsuitable as
+stable external references. Restricting `DRILL` to built-in keys prevents an
+MSYNC attachment from breaking after a custom-drill rename and keeps downloaded
+files portable. A future format may reference saved custom drills after Nova
+gives them immutable IDs.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
