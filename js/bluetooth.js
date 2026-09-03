@@ -11,6 +11,12 @@ export const bleState = {
 };
 
 let writeLock = Promise.resolve();
+const robotDoneListeners = new Set();
+
+export function onRobotDone(listener) {
+    robotDoneListeners.add(listener);
+    return () => robotDoneListeners.delete(listener);
+}
 
 export async function connectDevice() {
     try {
@@ -105,6 +111,14 @@ function onNotify(e) {
     // Drill execution callback
     if (hex.includes(MSG_DONE)) {
         handleDone();
+        robotDoneListeners.forEach(listener => {
+            try {
+                listener();
+            }
+            catch (error) {
+                console.error('Robot done listener failed:', error);
+            }
+        });
     }
 }
 

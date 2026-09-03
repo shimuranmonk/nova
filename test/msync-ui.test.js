@@ -7,6 +7,19 @@ globalThis.localStorage = {
     setItem: () => {},
     removeItem: () => {}
 };
+globalThis.document = {
+    getElementById: () => null,
+    addEventListener: () => {},
+    dispatchEvent: () => {},
+    querySelectorAll: () => []
+};
+globalThis.window = globalThis;
+globalThis.addEventListener = () => {};
+globalThis.Audio = class {
+    addEventListener() {}
+    removeAttribute() {}
+    pause() {}
+};
 
 const { formatMsyncValidationReport } = await import('../js/msync-ui.js');
 
@@ -52,6 +65,7 @@ test('ships every required MSYNC import control in the page', async () => {
         'msync-simulation',
         'msync-session-state',
         'msync-sim-start',
+        'msync-live-start',
         'msync-sim-pause',
         'msync-sim-stop',
         'msync-event-log'

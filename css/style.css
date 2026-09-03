@@ -506,7 +506,7 @@ input[type="number"]:disabled {
 
 .msync-simulation-actions {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
 }
 
@@ -518,6 +518,11 @@ input[type="number"]:disabled {
 .msync-event-log {
     margin-top: 8px;
     max-height: 180px;
+}
+
+.msync-live-start {
+    border-color: #d63031;
+    color: #d63031;
 }
 
 

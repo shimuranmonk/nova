@@ -156,10 +156,15 @@ function validateDrills(entries, issues, context) {
         }
         const level = Number(levelText);
         let data = null;
-        if (kind === 'BUILTIN' && context.builtInDrills) data = context.builtInDrills[reference]?.[level];
+        let random = false;
+        if (kind === 'BUILTIN' && context.builtInDrills) {
+            data = context.builtInDrills[reference]?.[level];
+            random = Boolean(context.builtInDrills[reference]?.random);
+        }
         if (kind === 'CUSTOM' && context.customDrills && context.drillData) {
             const custom = findCustomDrillById(context.customDrills, reference);
             data = custom ? context.drillData[custom.key]?.[level] : null;
+            random = custom ? Boolean(context.drillData[custom.key]?.random) : false;
         }
         const resolutionRequired = context.requireDrillResolution ||
             (kind === 'BUILTIN'
@@ -170,7 +175,7 @@ function validateDrills(entries, issues, context) {
                 `${entry.key} cannot resolve ${kind}:${reference} at level ${level}.`,
                 { found: `${kind}:${reference}` }));
         }
-        drills[entry.key] = { kind, reference, level, line: entry.line, data };
+        drills[entry.key] = { kind, reference, level, line: entry.line, data, random };
     }
     return drills;
 }

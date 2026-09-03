@@ -17,12 +17,20 @@ import {
     revalidateMsyncAttachment
 } from './msync-session.js';
 import { MSYNC_PARSER_VERSION } from './msync-parser.js';
+import {
+    bleState,
+    onRobotDone,
+    sendPacket
+} from './bluetooth.js';
+import { MsyncRobotAdapter } from './msync-robot.js';
 
 let tracks = [];
 let selectedTrack = null;
 let pendingValidation = null;
 let sessionController = null;
 let simulationEvents = [];
+let robotAdapter = null;
+let liveMode = false;
 
 function element(id) {
     return document.getElementById(id);
@@ -90,14 +98,16 @@ function updateTrackStatus() {
 function updateSimulationState(state, reason = null) {
     const label = element('msync-session-state');
     const start = element('msync-sim-start');
+    const liveStart = element('msync-live-start');
     const pause = element('msync-sim-pause');
     const stop = element('msync-sim-stop');
-    label.textContent = `${state}${reason ? ` — ${reason}` : ''} — No robot commands.`;
+    label.textContent = `${state}${reason ? ` — ${reason}` : ''} — ${liveMode ? 'LIVE ROBOT' : 'No robot commands.'}`;
     start.disabled = ![
         MSYNC_SESSION_STATE.READY,
         MSYNC_SESSION_STATE.COMPLETED,
         MSYNC_SESSION_STATE.ERROR
     ].includes(state);
+    liveStart.disabled = start.disabled || !bleState.isConnected;
     pause.disabled = ![
         MSYNC_SESSION_STATE.PLAYING,
         MSYNC_SESSION_STATE.PAUSED
@@ -128,9 +138,28 @@ function recordSimulationEvent(event) {
     element('msync-event-log').textContent = simulationEvents.join('\n');
 }
 
+function recordRobotDiagnostic(event) {
+    if (event.type === 'ROBOT_REPLACE_SENT') {
+        simulationEvents.push(
+            `${eventPosition(null)}  ROBOT SENT ${event.ballCount} ball${event.ballCount === 1 ? '' : 's'}; dispatch ${event.dispatchMs.toFixed(1)}ms`
+        );
+    }
+    else if (event.type === 'ROBOT_STOP_SENT') {
+        simulationEvents.push(`${eventPosition(null)}  ROBOT STOP ${event.reason}`);
+    }
+    else {
+        simulationEvents.push(`${eventPosition(null)}  ROBOT ERROR ${event.message}`);
+        sessionController?.fail('ROBOT_ERROR', new Error(event.message));
+    }
+    element('msync-event-log').textContent = simulationEvents.slice(-100).join('\n');
+}
+
 function destroySimulation() {
     sessionController?.destroy();
     sessionController = null;
+    robotAdapter?.destroy();
+    robotAdapter = null;
+    liveMode = false;
     updateSimulationState(MSYNC_SESSION_STATE.READY);
 }
 
@@ -310,10 +339,22 @@ export function initializeMsyncUI() {
     element('msync-export').addEventListener('click', exportAttachment);
     element('msync-remove').addEventListener('click', removeAttachment);
     element('msync-attach-confirm').addEventListener('click', () => attachPending(true));
-    element('msync-sim-start').addEventListener('click', startSimulation);
+    element('msync-sim-start').addEventListener('click', () => startMsyncSession(false));
+    element('msync-live-start').addEventListener('click', () => startMsyncSession(true));
     element('msync-sim-pause').addEventListener('click', toggleSimulationPause);
     element('msync-sim-stop').addEventListener('click', () =>
         sessionController?.stop('MANUAL_STOP'));
+    document.addEventListener('connection-changed', () => {
+        updateSimulationState(
+            sessionController?.state || MSYNC_SESSION_STATE.READY
+        );
+        if (liveMode && !bleState.isConnected) {
+            sessionController?.fail(
+                'ROBOT_DISCONNECTED',
+                new Error('Robot disconnected')
+            );
+        }
+    });
     refreshMsyncTracks().catch(error => {
         console.error('Unable to load MSYNC tracks:', error);
         showToast('Unable to load MSYNC tracks');
@@ -360,8 +401,12 @@ async function acceptNewWarnings(result) {
     return true;
 }
 
-async function startSimulation() {
+async function startMsyncSession(useLiveRobot) {
     if (!selectedTrack?.metadata?.msync) return;
+    if (useLiveRobot && !bleState.isConnected) {
+        showToast('Connect the robot before Live mode');
+        return;
+    }
     try {
         showToast('Revalidating MSYNC...');
         const result = await revalidateMsyncAttachment(selectedTrack, {
@@ -377,15 +422,31 @@ async function startSimulation() {
             return;
         }
         if (!await acceptNewWarnings(result)) return;
+        if (useLiveRobot && !window.confirm(
+            'Start LIVE MSYNC?\n\nThe connected robot will begin firing balls at the scheduled cues. Keep the table clear and remain ready to press Stop.'
+        )) return;
         destroySimulation();
+        liveMode = useLiveRobot;
         simulationEvents = [];
         element('msync-event-log').textContent = 'Waiting for synchronized cues...';
         const audio = new MsyncAudioPlayer();
         audio.load(selectedTrack);
+        if (useLiveRobot) {
+            robotAdapter = new MsyncRobotAdapter({
+                send: sendPacket,
+                subscribeDone: onRobotDone,
+                isConnected: () => bleState.isConnected,
+                onDiagnostic: recordRobotDiagnostic
+            });
+            robotAdapter.configure(result.parsed);
+        }
         sessionController = new MsyncSessionController({
             audio,
             onState: value => updateSimulationState(value.state, value.reason),
-            onEvent: recordSimulationEvent
+            onEvent: value => {
+                recordSimulationEvent(value);
+                robotAdapter?.handleSessionEvent(value);
+            }
         });
         await sessionController.start(result.parsed);
     }
