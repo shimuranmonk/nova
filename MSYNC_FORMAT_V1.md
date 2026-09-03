@@ -291,6 +291,26 @@ Example:
 Nova prepares the flavored inline drill, keeps robot firing suspended for two
 seconds while music and cue processing continue, and then starts that drill.
 
+## Optional STOP cue
+
+`STOP` is optional. If it is absent, the actual end of audio terminates the
+MSYNC session.
+
+Rules:
+
+1. `STOP` may occur before the declared audio duration to end a session early.
+2. `STOP` immediately stops robot firing and music playback.
+3. `STOP` cancels pending rests, drill resumptions, and future cues.
+4. No cue may appear after `STOP`.
+5. `STOP` is alone at its timestamp.
+6. At most one `STOP` is allowed in a file.
+7. The actual end of audio always stops robot activity, with or without a
+   `STOP` cue.
+8. A playback error also safely stops the robot and ends the session.
+9. Manual Stop in the MSYNC tab has the same terminal behavior.
+10. `STOP` terminates the entire synchronized session; it does not merely stop
+    the current drill.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
