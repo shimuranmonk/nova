@@ -66,3 +66,5 @@ The existing Music-tab playback path must remain unchanged in behavior. Future
 MSYNC modules may reuse the low-level audio player, but MSYNC activation must be
 explicitly gated by MSYNC mode and must never be inferred merely from the
 presence of `metadata.msync`.
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.

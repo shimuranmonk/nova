@@ -39,3 +39,5 @@ version, normalizes a missing metadata object, and supplies a new update
 timestamp the next time such a record is saved. This does not require an
 IndexedDB version upgrade and does not change the Playlist's stable `id` or
 its ordered Track IDs.
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.

@@ -42,3 +42,5 @@ Playlist Manager v1 records created before this contract may not contain
 normalizes a missing metadata object, and supplies a new update timestamp the
 next time such a record is saved. This does not require an IndexedDB version
 upgrade and does not change the record's stable `id`.
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.
