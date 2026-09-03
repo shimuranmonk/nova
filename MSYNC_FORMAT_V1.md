@@ -75,6 +75,36 @@ Rules:
 9. Replacing an attachment replaces the complete `metadata.msync` object only
    after the new file validates successfully.
 
+## Portable audio identification
+
+The external file identifies its intended audio in the `[AUDIO]` section:
+
+```text
+[AUDIO]
+FILENAME=eye-of-the-trainer.mp3
+SHA256=8fd41e9802b5c417b45a91c90a12cdb074377d4f6a9c4d1e753624cbb3892601
+DURATION=03:20.000
+```
+
+The external file never contains Nova's local Track UUID. During import, the
+user explicitly selects the target Track and Nova compares its stored audio
+information with `[AUDIO]`.
+
+Identification roles:
+
+```text
+SHA256       primary portable audio-content identity
+FILENAME     human-readable label
+DURATION     additional compatibility check
+Track.id     local attachment target selected by the user
+```
+
+A matching audio SHA-256 identifies the same audio content even when the file
+or Track has been renamed. A filename difference is therefore a warning rather
+than a rejection when the hashes match. A hash difference means the audio
+contents differ. Renaming a Track after attachment does not affect its MSYNC
+data.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
