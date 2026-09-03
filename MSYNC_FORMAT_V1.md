@@ -126,6 +126,32 @@ Rules:
    `Track.metadata.msync.sourceSha256`, which fingerprints the MSYNC source
    text.
 
+## Mandatory audio duration
+
+`DURATION` is required in every MSYNC v1 `[AUDIO]` section.
+
+Syntax:
+
+```text
+DURATION=MM:SS.mmm
+```
+
+Rules:
+
+1. Minutes contain at least two digits and may exceed 59.
+2. Seconds range from `00` through `59`.
+3. Milliseconds contain exactly three digits.
+4. The duration must be greater than zero.
+5. Nova compares it with the selected Track's measured duration.
+6. A difference of at most 0.500 seconds is accepted to accommodate browser
+   and encoder timing differences.
+7. A larger difference blocks attachment and reports both durations.
+8. Every cue timestamp must fall between zero and the declared duration.
+9. A `REST` period cannot cause robot activity beyond the audio duration.
+10. The Track's measured duration is the runtime authority for the actual end
+    of playback.
+11. The declared duration is the authoring and cue-validation boundary.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
