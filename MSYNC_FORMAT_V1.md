@@ -14,8 +14,8 @@ MSYNC_VERSION=1
 [AUDIO]
 [SESSION]
 [DRILLS]
-[FLAVOR:name]
-[INLINE:name]
+[FLAVOR:FLV_NAME]
+[INLINE:INL_NAME]
 [CUES]
 ```
 
@@ -27,13 +27,13 @@ MSYNC_VERSION=1   required; exactly once and before all sections
 [AUDIO]           required; exactly once
 [SESSION]         optional; at most once
 [DRILLS]          optional; at most once
-[FLAVOR:name]     optional; repeatable with a unique name
-[INLINE:name]     optional; repeatable with a unique name
+[FLAVOR:FLV_NAME] optional; repeatable with a unique name
+[INLINE:INL_NAME] optional; repeatable with a unique name
 [CUES]            required; exactly once
 ```
 
 `[DRILLS]` assigns readable aliases to drills that already exist in Nova.
-`[INLINE:name]` defines a complete, portable drill inside the MSYNC file.
+`[INLINE:INL_NAME]` defines a complete, portable drill inside the MSYNC file.
 MSYNC v1 supports both forms. Unknown sections, duplicate singleton sections,
 and duplicate flavor or inline names are validation errors.
 
@@ -158,9 +158,9 @@ MSYNC v1 may reference both built-in and custom Nova drills.
 
 ```text
 [DRILLS]
-WARMUP=BUILTIN:push(b);LEVEL=1
-ATTACK=BUILTIN:loop(f)-drive(b);LEVEL=2
-MY_SERVE=CUSTOM:550e8400-e29b-41d4-a716-446655440000;LEVEL=1
+DRL_WARMUP=BUILTIN:push(b);LEVEL=1
+DRL_ATTACK=BUILTIN:loop(f)-drive(b);LEVEL=2
+DRL_MY_SERVE=CUSTOM:550e8400-e29b-41d4-a716-446655440000;LEVEL=1
 ```
 
 The name on the left is a unique, readable alias used by cues. `BUILTIN:` is
@@ -176,8 +176,16 @@ never this ID.
 
 A custom reference is local unless the same custom drill and UUID are imported
 on another installation. Fully portable downloaded files should use
-`[INLINE:name]`. Missing, deleted, malformed, or empty drill-level references
+`[INLINE:INL_NAME]`. Missing, deleted, malformed, or empty drill-level references
 fail the existing strict validation rules.
+
+Drill aliases use `DRL_` followed by a name beginning with an uppercase letter
+and containing only uppercase letters, digits, and underscores. Total length is
+at most 40 characters. `DRL_` alone is invalid. Built-in references use the
+exact form `DRL_NAME=BUILTIN:key;LEVEL=n`; custom references use
+`DRL_NAME=CUSTOM:uuid;LEVEL=n`. `LEVEL` is required and is 1, 2, or 3.
+Aliases are case-sensitive and unique within `[DRILLS]`. Undefined cue aliases
+are errors; unused definitions produce warnings.
 
 ## Inline drill syntax
 
@@ -185,7 +193,7 @@ An inline drill defines a complete portable drill using Nova's published ball
 parameters:
 
 ```text
-[INLINE:SHORT_BACKSPIN]
+[INLINE:INL_SHORT_BACKSPIN]
 NAME=Short Backspin Pattern
 RANDOM=false
 
@@ -238,12 +246,12 @@ Flavor scope is limited to one drill activation:
 Example:
 
 ```text
-00:15.000 DRILL=WARMUP
-00:15.000 FLAVOR=FASTER
-00:45.000 DRILL=ATTACK
+00:15.000 DRILL=DRL_WARMUP
+00:15.000 FLAVOR=FLV_FASTER
+00:45.000 DRILL=DRL_ATTACK
 ```
 
-`FASTER` affects `WARMUP` only. `ATTACK` begins with its original parameters
+`FLV_FASTER` affects `DRL_WARMUP` only. `DRL_ATTACK` begins with its original parameters
 unless another `FLAVOR` cue follows its activation.
 
 ## INFO section
@@ -378,8 +386,8 @@ REST
 Example:
 
 ```text
-01:30.000 INLINE=SHORT_BACKSPIN
-01:30.000 FLAVOR=INTENSE
+01:30.000 INLINE=INL_SHORT_BACKSPIN
+01:30.000 FLAVOR=FLV_INTENSE
 01:30.000 REST=2
 ```
 
