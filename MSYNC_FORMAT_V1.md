@@ -311,6 +311,27 @@ Rules:
 10. `STOP` terminates the entire synchronized session; it does not merely stop
     the current drill.
 
+## Natural audio completion
+
+When audio reaches its actual end without an explicit `STOP`, Nova:
+
+1. Sends the robot's normal stop command immediately.
+2. Stops the cue scheduler.
+3. Prevents another drill cycle from starting.
+4. Cancels pending rests and drill resumptions.
+5. Discards future cues.
+6. Clears the active drill and flavor runtime state.
+7. Marks the session as completed rather than failed.
+8. Returns the MSYNC tab to its ready state.
+9. Retains the imported MSYNC attachment on the Track.
+10. Starts any future replay from timestamp zero with no retained runtime
+    state.
+11. Reports a missing robot stop acknowledgement as a connection problem while
+    still closing the local MSYNC session.
+
+Explicit `STOP`, manual Stop, playback failure, and Bluetooth disconnection use
+the same safety cleanup. Only the displayed completion reason differs.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
