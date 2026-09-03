@@ -1530,6 +1530,14 @@ input[type="number"]:disabled {
     min-width: 180px;
 }
 
+/* Music card headings stay emphasized; interactive text stays uniform. */
+.music-control .music-file-btn,
+.music-control .music-playlist-select,
+.music-control .music-playlist-info {
+    font-family: inherit;
+    font-weight: 400;
+}
+
 .music-file-input {
     display: none;
 }

@@ -79,3 +79,9 @@ test('ships every required MSYNC import control in the page', async () => {
     assert.match(html, /<h1>Nova Drill Control PLUS<\/h1>/);
     assert.match(html, /href="https:\/\/github\.com\/shimuranmonk\/nova"/);
 });
+
+test('uses regular text weight for Music controls while card labels remain headings', async () => {
+    const css = await readFile(new URL('../css/style.css', import.meta.url), 'utf8');
+    assert.match(css, /\.music-control \.music-file-btn,[\s\S]*?font-weight:\s*400;/);
+    assert.match(css, /\.control-pill label[\s\S]*?font-weight:\s*700;/);
+});
