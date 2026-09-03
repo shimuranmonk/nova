@@ -500,6 +500,48 @@ Rules:
 11. `REST` values remain durations in seconds and may include a fractional
     part, for example `01:05.250 REST=2.5`.
 
+## CUES command grammar
+
+`[CUES]` supports exactly five file commands:
+
+```text
+DRILL=DRL_NAME
+INLINE=INL_NAME
+FLAVOR=FLV_NAME
+FLAVOR=NONE
+REST=seconds
+STOP
+```
+
+Each line begins with an approved cue timestamp followed by one or more spaces
+and exactly one uppercase, case-sensitive command. Cue lines are valid only in
+`[CUES]`, are chronological, and contain no trailing content. The section must
+contain at least one `DRILL` or `INLINE` activation.
+
+`DRILL` resolves a defined `DRL_` alias and `INLINE` resolves a defined `INL_`
+name. Either activates a fresh unflavored execution copy and clears the prior
+drill and flavor.
+
+`FLAVOR` resolves a defined `FLV_` name and requires an active drill from an
+earlier cue or an earlier line at the same timestamp. It rebuilds from the
+original active drill and applies the selected flavor. `FLAVOR=NONE` restores
+the active drill's original parameters; `NONE` is reserved and cannot be a
+flavor name.
+
+`REST` accepts a duration greater than zero and no greater than 600 seconds,
+with at most three decimal places. Its end cannot exceed `[AUDIO].DURATION`.
+Music and cue processing continue while robot firing is suspended, after which
+the then-current drill and flavor resume.
+
+`STOP` has no `=` or value, occurs at most once and alone at its timestamp, and
+has no following cues. It terminates music, robot activity, scheduler, and
+session under the approved cleanup rules.
+
+`PAUSE` is an MSYNC-tab user control rather than a scheduled file command.
+`MODIFY` is excluded from v1; parameter changes use named flavors. Unknown
+commands, undefined names, malformed values, and misplaced commands are
+validation errors. Unused definitions produce warnings.
+
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
