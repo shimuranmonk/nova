@@ -83,6 +83,11 @@ import {
     createCustomDrillId
 } from './custom-drill-identity.js';
 
+import {
+    initializeMsyncUI,
+    setMsyncModeActive
+} from './msync-ui.js';
+
 
 
 // --- Initialization ---
@@ -97,6 +102,8 @@ document.addEventListener(
         updateStatsUI();
 
         setupEventListeners();
+
+        initializeMsyncUI();
 
         console.log(
             'Nova Drill Control: Modules Loaded'
@@ -712,6 +719,12 @@ window.setMode =
             );
 
 
+        const uiMsync =
+            document.getElementById(
+                'ui-msync'
+            );
+
+
         uiReps?.classList.add(
             'hidden'
         );
@@ -727,6 +740,14 @@ window.setMode =
         );
 
 
+        uiMsync?.classList.add(
+            'hidden'
+        );
+
+
+        setMsyncModeActive(mode === 'msync');
+
+
         if (mode === 'reps') {
             uiReps?.classList.remove(
                 'hidden'
@@ -739,6 +760,11 @@ window.setMode =
         }
         else if (mode === 'music') {
             uiMusic?.classList.remove(
+                'hidden'
+            );
+        }
+        else if (mode === 'msync') {
+            uiMsync?.classList.remove(
                 'hidden'
             );
         }

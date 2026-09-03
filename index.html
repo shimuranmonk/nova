@@ -300,6 +300,14 @@
                     Music
                 </div>
 
+
+                <div
+                    class="mode-option"
+                    onclick="setMode('msync', this)"
+                >
+                    MSYNC
+                </div>
+
             </div>
 
         </div>
@@ -402,7 +410,61 @@
             </div>
 
 
-            <div class="control-pill">
+            <div
+                class="control-pill hidden msync-control"
+                id="ui-msync"
+            >
+                <label for="msync-track-select">MSYNC Track</label>
+
+                <select id="msync-track-select" class="music-playlist-select">
+                    <option value="">Select a stored track</option>
+                </select>
+
+                <div id="msync-track-status" class="msync-status">
+                    Select a track from Playlist Manager.
+                </div>
+
+                <div class="msync-actions">
+                    <label for="msync-file-input" class="music-file-btn">
+                        Choose .msync File
+                    </label>
+                    <input
+                        type="file"
+                        id="msync-file-input"
+                        accept=".msync,text/plain"
+                        class="music-file-input"
+                    >
+
+                    <button type="button" id="msync-copy-hash" class="music-file-btn">
+                        Copy Audio Hash
+                    </button>
+                    <button type="button" id="msync-export" class="music-file-btn hidden">
+                        Export MSYNC
+                    </button>
+                    <button type="button" id="msync-remove" class="music-file-btn msync-danger hidden">
+                        Remove MSYNC
+                    </button>
+                </div>
+
+                <div id="msync-validation-report" class="msync-report hidden"></div>
+                <button
+                    type="button"
+                    id="msync-copy-report"
+                    class="music-file-btn hidden"
+                >
+                    Copy Validation Report
+                </button>
+                <button
+                    type="button"
+                    id="msync-attach-confirm"
+                    class="btn-connect msync-confirm hidden"
+                >
+                    Attach anyway
+                </button>
+            </div>
+
+
+            <div class="control-pill" id="ui-pause">
 
                 <label>
                     Pause (s)
@@ -421,6 +483,8 @@
 
     </div>
 
+
+    <div id="drill-selection-area">
 
     <div class="section-label">
         Drill Selection
@@ -566,6 +630,8 @@
         id="view-custom-c"
         class="drill-list hidden"
     ></div>
+
+    </div>
 
 
     <div class="footer-row">

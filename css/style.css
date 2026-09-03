@@ -432,6 +432,64 @@ input[type="number"]:disabled {
     display: none !important;
 }
 
+.msync-control {
+    width: 100%;
+    text-align: left;
+    align-items: stretch;
+    gap: 10px;
+}
+
+.msync-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.msync-actions .music-file-btn {
+    box-sizing: border-box;
+    margin: 0;
+    width: 100%;
+    text-align: center;
+}
+
+.msync-status,
+.msync-report {
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text-light);
+    font-size: 0.76rem;
+    line-height: 1.45;
+    padding: 10px;
+    overflow-wrap: anywhere;
+}
+
+.msync-report {
+    max-height: 220px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+}
+
+.msync-report.has-errors {
+    border: 1px solid #d63031;
+}
+
+.msync-report.has-warnings {
+    border: 1px solid #e1a500;
+}
+
+.msync-report.is-valid {
+    border: 1px solid #00a66a;
+}
+
+.msync-danger {
+    color: #d63031;
+}
+
+.msync-confirm {
+    margin: 0;
+    width: 100%;
+}
+
 
 /* === WIDE BUTTON STYLE === */
 
