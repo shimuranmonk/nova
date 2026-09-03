@@ -3,6 +3,11 @@ import { SPIN_LIMITS, RPM_MIN, RPM_MAX } from './constants.js';
 import { sendPacket, packBall, bleState } from './bluetooth.js';
 import { showToast, clamp, toggleBodyScroll } from './utils.js';
 import { uploadDrill } from './cloud.js';
+import {
+    createCustomDrillId,
+    findCustomDrillByKey,
+    isValidCustomDrillId
+} from './custom-drill-identity.js';
 
 // --- Local State ---
 let tempDrillData = null;
@@ -31,6 +36,16 @@ export function openEditor(key) {
     if(btnDel) {
         btnDel.disabled = !key.startsWith('cust_');
         btnDel.style.opacity = key.startsWith('cust_') ? '1' : '0.5';
+    }
+
+    const btnMsyncReference = document.getElementById(
+        'btn-copy-msync-reference'
+    );
+
+    if (btnMsyncReference) {
+        btnMsyncReference.style.display = key.startsWith('cust_')
+            ? ''
+            : 'none';
     }
 
     document.getElementById('editor-modal').classList.add('open');
@@ -431,7 +446,11 @@ window.performSaveAs = () => {
 
     const catChar = targetCat.split('-')[1].toUpperCase(); 
     const newKey = `cust_${catChar}_${newName.replace(/\s+/g, '_')}_${Date.now()}`;
-    userCustomDrills[targetCat].push({ name: newName, key: newKey });
+    userCustomDrills[targetCat].push({
+        id: createCustomDrillId(),
+        name: newName,
+        key: newKey
+    });
 
     let baseDrill = currentDrills[editingDrillKey] || { 1: [], 2: [], 3: [] }; 
     const newDrillData = JSON.parse(JSON.stringify(baseDrill));
@@ -630,5 +649,37 @@ window.handleShareDrill = async () => {
     } finally {
         btn.innerHTML = originalHtml;
         btn.disabled = false;
+    }
+};
+
+window.handleCopyMsyncReference = async () => {
+    if (!editingDrillKey || !editingDrillKey.startsWith('cust_')) {
+        return;
+    }
+
+    const drill = findCustomDrillByKey(
+        userCustomDrills,
+        editingDrillKey
+    );
+
+    if (!drill || !isValidCustomDrillId(drill.id)) {
+        showToast('MSYNC reference is unavailable');
+        return;
+    }
+
+    const reference = `CUSTOM:${drill.id}`;
+
+    try {
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(reference);
+            showToast('MSYNC reference copied');
+        }
+        else {
+            window.prompt('Copy MSYNC Reference:', reference);
+        }
+    }
+    catch (error) {
+        console.error('Unable to copy MSYNC reference:', error);
+        window.prompt('Copy MSYNC Reference:', reference);
     }
 };

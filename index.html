@@ -634,6 +634,19 @@
             <div class="header-actions">
 
                 <button
+                    id="btn-copy-msync-reference"
+                    class="btn-header-share"
+                    onclick="window.handleCopyMsyncReference()"
+                    title="Copy MSYNC Reference"
+                    aria-label="Copy MSYNC Reference"
+                >
+                    <svg viewBox="0 0 24 24">
+                        <rect x="8" y="8" width="12" height="12" rx="2"></rect>
+                        <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path>
+                    </svg>
+                </button>
+
+                <button
                     class="btn-header-share"
                     onclick="window.handleShareDrill()"
                     title="Share Drill"

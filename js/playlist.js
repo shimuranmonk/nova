@@ -6,6 +6,108 @@ const PLAYLIST_SCHEMA_VERSION = 1;
 const TRACK_STORE = 'tracks';
 const PLAYLIST_STORE = 'playlists';
 
+function isRecordObject(value) {
+    return value &&
+        typeof value === 'object' &&
+        !Array.isArray(value);
+}
+
+export function normalizeTrackRecord(track, now = Date.now()) {
+    if (!isRecordObject(track)) {
+        throw new Error('Track record is invalid');
+    }
+
+    if (
+        Number.isInteger(track.schemaVersion) &&
+        track.schemaVersion > TRACK_SCHEMA_VERSION
+    ) {
+        throw new Error('Track record requires a newer Nova version');
+    }
+
+    return {
+        ...track,
+        schemaVersion: TRACK_SCHEMA_VERSION,
+        metadata: isRecordObject(track.metadata)
+            ? track.metadata
+            : {},
+        updatedAt:
+            Number.isFinite(track.updatedAt)
+                ? track.updatedAt
+                : Number.isFinite(track.createdAt)
+                    ? track.createdAt
+                    : now
+    };
+}
+
+export function normalizePlaylistRecord(
+    playlist,
+    now = Date.now()
+) {
+    if (!isRecordObject(playlist)) {
+        throw new Error('Playlist record is invalid');
+    }
+
+    if (
+        Number.isInteger(playlist.schemaVersion) &&
+        playlist.schemaVersion > PLAYLIST_SCHEMA_VERSION
+    ) {
+        throw new Error('Playlist record requires a newer Nova version');
+    }
+
+    return {
+        ...playlist,
+        schemaVersion: PLAYLIST_SCHEMA_VERSION,
+        trackIds: Array.isArray(playlist.trackIds)
+            ? [...playlist.trackIds]
+            : [],
+        metadata: isRecordObject(playlist.metadata)
+            ? playlist.metadata
+            : {},
+        updatedAt:
+            Number.isFinite(playlist.updatedAt)
+                ? playlist.updatedAt
+                : Number.isFinite(playlist.createdAt)
+                    ? playlist.createdAt
+                    : now
+    };
+}
+
+export function attachMsyncToTrack(
+    track,
+    msync,
+    now = Date.now()
+) {
+    if (!isRecordObject(msync)) {
+        throw new Error('Validated MSYNC attachment is required');
+    }
+
+    const normalized = normalizeTrackRecord(track, now);
+
+    return {
+        ...normalized,
+        metadata: {
+            ...normalized.metadata,
+            msync
+        },
+        updatedAt: now
+    };
+}
+
+export function removeMsyncFromTrack(track, now = Date.now()) {
+    const normalized = normalizeTrackRecord(track, now);
+    const metadata = {
+        ...normalized.metadata
+    };
+
+    delete metadata.msync;
+
+    return {
+        ...normalized,
+        metadata,
+        updatedAt: now
+    };
+}
+
 // Keep one DB connection promise.
 // Para dili sige ug open sa IndexedDB kada function call.
 let dbPromise = null;
@@ -151,13 +253,7 @@ export async function saveTrack(track) {
      * - mark every stored update
      */
     const record = {
-        ...track,
-        schemaVersion:
-            track.schemaVersion || TRACK_SCHEMA_VERSION,
-        metadata:
-            track.metadata && typeof track.metadata === 'object'
-                ? track.metadata
-                : {},
+        ...normalizeTrackRecord(track),
         updatedAt: Date.now()
     };
 
@@ -170,17 +266,24 @@ export async function saveTrack(track) {
         const store = transaction.objectStore(TRACK_STORE);
         const request = store.put(record);
 
-        request.onsuccess = () => {
+        transaction.oncomplete = () => {
             resolve(record);
         };
 
-        request.onerror = () => {
+        transaction.onerror = () => {
             console.error(
                 'Unable to save track:',
-                request.error
+                transaction.error || request.error
             );
 
-            reject(request.error);
+            reject(transaction.error || request.error);
+        };
+
+        transaction.onabort = () => {
+            reject(
+                transaction.error ||
+                new Error('Track save transaction was aborted')
+            );
         };
     });
 }
@@ -204,7 +307,16 @@ export async function getTrack(id) {
         const request = store.get(id);
 
         request.onsuccess = () => {
-            resolve(request.result || null);
+            try {
+                resolve(
+                    request.result
+                        ? normalizeTrackRecord(request.result)
+                        : null
+                );
+            }
+            catch (error) {
+                reject(error);
+            }
         };
 
         request.onerror = () => {
@@ -273,17 +385,7 @@ export async function savePlaylist(playlist) {
     // Make sure old/future records don't end up
     // without the basic fields we depend on.
     const record = {
-        ...playlist,
-        schemaVersion:
-            playlist.schemaVersion || PLAYLIST_SCHEMA_VERSION,
-        trackIds: Array.isArray(playlist.trackIds)
-            ? playlist.trackIds
-            : [],
-        metadata:
-            playlist.metadata &&
-            typeof playlist.metadata === 'object'
-                ? playlist.metadata
-                : {},
+        ...normalizePlaylistRecord(playlist),
         updatedAt: Date.now()
     };
 
@@ -296,17 +398,24 @@ export async function savePlaylist(playlist) {
         const store = transaction.objectStore(PLAYLIST_STORE);
         const request = store.put(record);
 
-        request.onsuccess = () => {
+        transaction.oncomplete = () => {
             resolve(record);
         };
 
-        request.onerror = () => {
+        transaction.onerror = () => {
             console.error(
                 'Unable to save playlist:',
-                request.error
+                transaction.error || request.error
             );
 
-            reject(request.error);
+            reject(transaction.error || request.error);
+        };
+
+        transaction.onabort = () => {
+            reject(
+                transaction.error ||
+                new Error('Playlist save transaction was aborted')
+            );
         };
     });
 }
@@ -330,7 +439,16 @@ export async function getPlaylist(id) {
         const request = store.get(id);
 
         request.onsuccess = () => {
-            resolve(request.result || null);
+            try {
+                resolve(
+                    request.result
+                        ? normalizePlaylistRecord(request.result)
+                        : null
+                );
+            }
+            catch (error) {
+                reject(error);
+            }
         };
 
         request.onerror = () => {
@@ -364,7 +482,17 @@ export async function getAllPlaylists() {
         const request = store.getAll();
 
         request.onsuccess = () => {
-            const playlists = request.result || [];
+            let playlists;
+
+            try {
+                playlists = (request.result || []).map(
+                    playlist => normalizePlaylistRecord(playlist)
+                );
+            }
+            catch (error) {
+                reject(error);
+                return;
+            }
 
             playlists.sort((a, b) =>
                 String(a.name || '').localeCompare(
@@ -546,7 +674,16 @@ export async function getAllTracks() {
         const request = store.getAll();
 
         request.onsuccess = () => {
-            resolve(request.result || []);
+            try {
+                resolve(
+                    (request.result || []).map(
+                        track => normalizeTrackRecord(track)
+                    )
+                );
+            }
+            catch (error) {
+                reject(error);
+            }
         };
 
         request.onerror = () => {

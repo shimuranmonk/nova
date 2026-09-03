@@ -79,6 +79,10 @@ import {
     downloadDrill
 } from './cloud.js';
 
+import {
+    createCustomDrillId
+} from './custom-drill-identity.js';
+
 
 
 // --- Initialization ---
@@ -1112,6 +1116,7 @@ window.performDownload =
             userCustomDrills[
                 selectedDownloadCat
             ].push({
+                id: createCustomDrillId(),
                 name: name,
                 key: newKey
             });
