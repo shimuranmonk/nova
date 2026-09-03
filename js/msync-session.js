@@ -64,7 +64,9 @@ export async function revalidateMsyncAttachment(track, context = {}) {
 }
 
 export class MsyncSessionController {
-    constructor({ audio, setTimer = setTimeout, clearTimer = clearTimeout,
+    constructor({ audio,
+        setTimer = (callback, delay) => setTimeout(callback, delay),
+        clearTimer = timer => clearTimeout(timer),
         pollInterval = 25, onState = () => {}, onEvent = () => {} }) {
         this.audio = audio;
         this.setTimer = setTimer;
