@@ -52,14 +52,18 @@ Track.metadata.msync
 ├── sourceText
 ├── sourceSha256
 ├── importedAt
-└── parsed
-    ├── info
-    ├── audio
-    ├── session
-    ├── drills
-    ├── flavors
-    ├── inline
-    └── cues
+├── parsed
+│   ├── info
+│   ├── audio
+│   ├── session
+│   ├── drills
+│   ├── flavors
+│   ├── inline
+│   └── cues
+└── validation
+    ├── parserVersion
+    ├── validatedAt
+    └── acceptedWarnings[]
 ```
 
 Rules:
@@ -77,6 +81,10 @@ Rules:
    the target Track during import.
 9. Replacing an attachment replaces the complete `metadata.msync` object only
    after the new file validates successfully.
+10. `validation` is Nova-generated and records the parser version, most recent
+    validation time, and warning identities explicitly accepted by the user.
+11. Pre-session validation reparses `sourceText`; `parsed` is never trusted as
+    the sole execution authority.
 
 ## Portable audio identification
 

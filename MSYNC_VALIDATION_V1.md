@@ -1,7 +1,6 @@
 # MSYNC Phase 1 — Validation and Error Contract
 
-Status: in progress. Approved validation decisions are recorded here as the
-contract is completed step by step.
+Status: approved and frozen for MSYNC v1.
 
 ## Validation result levels
 
@@ -86,3 +85,38 @@ source. Warnings are recalculated later; unchanged accepted warnings do not
 prompt on every Start, while newly discovered warnings are shown before Start.
 Errors discovered during revalidation always block Start. The Music tab never
 displays MSYNC warnings.
+
+## Pre-session revalidation
+
+Start never trusts an old parsed cache without validation. Nova confirms the
+Track and playable audio still exist, verifies `sourceText` against
+`sourceSha256`, parses the authoritative source again with the current v1
+parser, verifies audio hash and duration, resolves built-in keys and custom
+UUIDs, verifies drill levels, and revalidates inline drills, flavors,
+Speed/Spin combinations, and cues. It then confirms robot connectivity before
+beginning the countdown.
+
+Any error blocks Start. A valid freshly parsed result becomes the in-memory
+execution data without changing the authoritative source text.
+
+## Validation receipt
+
+Nova stores a generated receipt inside the attachment:
+
+```text
+validation
+├── parserVersion
+├── validatedAt
+└── acceptedWarnings[]
+    ├── code
+    ├── line
+    └── section
+```
+
+The receipt is not part of the external source and never contains acceptable
+errors. The same warning code at the same source location is previously
+accepted; a new warning requires confirmation before Start. Removed warnings
+disappear from the next receipt. Confirming new warnings updates the receipt
+and Track `updatedAt`; declining leaves the session stopped and the attachment
+unchanged. A newer parser version forces complete revalidation. Music mode
+ignores the receipt and all other MSYNC data.
