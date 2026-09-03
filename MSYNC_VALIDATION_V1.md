@@ -67,3 +67,22 @@ stops after 100 reported issues and asks the author to correct and validate
 again. Users can copy the complete validation report for their external editor.
 Raw exceptions and stack traces remain diagnostic logs rather than primary UI,
 and reports never expose the stored audio Blob.
+
+## Warning confirmation
+
+A file with warnings but no errors is valid but is not attached automatically.
+Nova displays every warning and requires one explicit `Attach anyway` action.
+Errors never offer this action.
+
+If the Track already has an attachment, a single combined confirmation states
+that the valid file has warnings and will replace the existing attachment. The
+action is labeled `Replace anyway`. Cancelling leaves the old attachment
+unchanged.
+
+One confirmation covers the complete warning set from that validation run. A
+change to the source file or selected Track invalidates the confirmation and
+requires revalidation. Warning acceptance is not written into the external
+source. Warnings are recalculated later; unchanged accepted warnings do not
+prompt on every Start, while newly discovered warnings are shown before Start.
+Errors discovered during revalidation always block Start. The Music tab never
+displays MSYNC warnings.
