@@ -48,7 +48,13 @@ test('ships every required MSYNC import control in the page', async () => {
         'msync-remove',
         'msync-validation-report',
         'msync-copy-report',
-        'msync-attach-confirm'
+        'msync-attach-confirm',
+        'msync-simulation',
+        'msync-session-state',
+        'msync-sim-start',
+        'msync-sim-pause',
+        'msync-sim-stop',
+        'msync-event-log'
     ]) {
         assert.match(html, new RegExp(`id="${id}"`), id);
     }

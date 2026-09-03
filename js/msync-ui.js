@@ -10,10 +10,19 @@ import {
     validateExternalMsyncFile
 } from './msync-import.js';
 import { showToast } from './utils.js';
+import { MsyncAudioPlayer } from './msync-audio.js';
+import {
+    MSYNC_SESSION_STATE,
+    MsyncSessionController,
+    revalidateMsyncAttachment
+} from './msync-session.js';
+import { MSYNC_PARSER_VERSION } from './msync-parser.js';
 
 let tracks = [];
 let selectedTrack = null;
 let pendingValidation = null;
+let sessionController = null;
+let simulationEvents = [];
 
 function element(id) {
     return document.getElementById(id);
@@ -48,6 +57,7 @@ function updateTrackStatus() {
     const removeButton = element('msync-remove');
     const fileInput = element('msync-file-input');
     const copyHash = element('msync-copy-hash');
+    const simulation = element('msync-simulation');
 
     pendingValidation = null;
     renderValidation(null);
@@ -58,6 +68,7 @@ function updateTrackStatus() {
         removeButton.classList.add('hidden');
         fileInput.disabled = true;
         copyHash.disabled = true;
+        simulation.classList.add('hidden');
         return;
     }
 
@@ -72,6 +83,55 @@ function updateTrackStatus() {
     removeButton.classList.toggle('hidden', !attachment);
     fileInput.disabled = false;
     copyHash.disabled = false;
+    simulation.classList.toggle('hidden', !attachment);
+    if (attachment) updateSimulationState(MSYNC_SESSION_STATE.READY);
+}
+
+function updateSimulationState(state, reason = null) {
+    const label = element('msync-session-state');
+    const start = element('msync-sim-start');
+    const pause = element('msync-sim-pause');
+    const stop = element('msync-sim-stop');
+    label.textContent = `${state}${reason ? ` — ${reason}` : ''} — No robot commands.`;
+    start.disabled = ![
+        MSYNC_SESSION_STATE.READY,
+        MSYNC_SESSION_STATE.COMPLETED,
+        MSYNC_SESSION_STATE.ERROR
+    ].includes(state);
+    pause.disabled = ![
+        MSYNC_SESSION_STATE.PLAYING,
+        MSYNC_SESSION_STATE.PAUSED
+    ].includes(state);
+    pause.textContent = state === MSYNC_SESSION_STATE.PAUSED ? 'Resume' : 'Pause';
+    stop.disabled = ![
+        MSYNC_SESSION_STATE.COUNTDOWN,
+        MSYNC_SESSION_STATE.PLAYING,
+        MSYNC_SESSION_STATE.PAUSED
+    ].includes(state);
+}
+
+function eventPosition(ms) {
+    return Number.isFinite(ms) ? formatDuration(ms) : '--:--.---';
+}
+
+function recordSimulationEvent(event) {
+    let detail = event.type;
+    if (event.type === 'COUNTDOWN') detail = `COUNTDOWN ${event.seconds}s`;
+    if (event.type === 'ACTIVATE') detail = `${event.active.type} ${event.active.name}`;
+    if (event.type === 'FLAVOR') detail = `FLAVOR ${event.flavor || 'NONE'}`;
+    if (event.type === 'REST_START') detail = `REST ${event.durationMs / 1000}s`;
+    if (event.type === 'REST_END') detail = 'REST END';
+    if (event.type === 'COMPLETE') detail = `COMPLETE ${event.reason}`;
+    if (event.type === 'ERROR') detail = `ERROR ${event.code}: ${event.message}`;
+    simulationEvents.push(`${eventPosition(event.positionMs)}  ${detail}`);
+    if (simulationEvents.length > 100) simulationEvents.shift();
+    element('msync-event-log').textContent = simulationEvents.join('\n');
+}
+
+function destroySimulation() {
+    sessionController?.destroy();
+    sessionController = null;
+    updateSimulationState(MSYNC_SESSION_STATE.READY);
 }
 
 function renderValidation(result) {
@@ -239,6 +299,7 @@ async function removeAttachment() {
 export function initializeMsyncUI() {
     const select = element('msync-track-select');
     select.addEventListener('change', () => {
+        destroySimulation();
         selectedTrack = tracks.find(track => track.id === select.value) || null;
         element('msync-file-input').value = '';
         updateTrackStatus();
@@ -249,6 +310,10 @@ export function initializeMsyncUI() {
     element('msync-export').addEventListener('click', exportAttachment);
     element('msync-remove').addEventListener('click', removeAttachment);
     element('msync-attach-confirm').addEventListener('click', () => attachPending(true));
+    element('msync-sim-start').addEventListener('click', startSimulation);
+    element('msync-sim-pause').addEventListener('click', toggleSimulationPause);
+    element('msync-sim-stop').addEventListener('click', () =>
+        sessionController?.stop('MANUAL_STOP'));
     refreshMsyncTracks().catch(error => {
         console.error('Unable to load MSYNC tracks:', error);
         showToast('Unable to load MSYNC tracks');
@@ -259,6 +324,82 @@ export function setMsyncModeActive(active) {
     element('drill-selection-area')?.classList.toggle('hidden', active);
     element('grp-difficulty')?.classList.toggle('hidden', active);
     element('ui-pause')?.classList.toggle('hidden', active);
+    if (!active) destroySimulation();
     if (active) refreshMsyncTracks().catch(error =>
         console.error('Unable to refresh MSYNC tracks:', error));
+}
+
+async function acceptNewWarnings(result) {
+    if (!result.newWarnings?.length) return true;
+    if (!window.confirm(
+        `${result.newWarnings.length} new MSYNC warning${result.newWarnings.length === 1 ? '' : 's'} found. Start simulation anyway?`
+    )) return false;
+    const now = Date.now();
+    const attachment = selectedTrack.metadata.msync;
+    selectedTrack = await saveTrack({
+        ...selectedTrack,
+        metadata: {
+            ...selectedTrack.metadata,
+            msync: {
+                ...attachment,
+                parsed: result.parsed,
+                validation: {
+                    parserVersion: MSYNC_PARSER_VERSION,
+                    validatedAt: now,
+                    acceptedWarnings: result.warnings.map(value => ({
+                        code: value.code,
+                        line: value.line,
+                        section: value.section
+                    }))
+                }
+            }
+        }
+    });
+    const index = tracks.findIndex(track => track.id === selectedTrack.id);
+    if (index >= 0) tracks[index] = selectedTrack;
+    return true;
+}
+
+async function startSimulation() {
+    if (!selectedTrack?.metadata?.msync) return;
+    try {
+        showToast('Revalidating MSYNC...');
+        const result = await revalidateMsyncAttachment(selectedTrack, {
+            builtInDrills: currentDrills,
+            customDrills: userCustomDrills,
+            drillData: currentDrills
+        });
+        pendingValidation = result;
+        renderValidation(result);
+        if (!result.valid) {
+            updateSimulationState(MSYNC_SESSION_STATE.ERROR, 'Revalidation failed');
+            showToast('Simulation blocked by MSYNC errors');
+            return;
+        }
+        if (!await acceptNewWarnings(result)) return;
+        destroySimulation();
+        simulationEvents = [];
+        element('msync-event-log').textContent = 'Waiting for synchronized cues...';
+        const audio = new MsyncAudioPlayer();
+        audio.load(selectedTrack);
+        sessionController = new MsyncSessionController({
+            audio,
+            onState: value => updateSimulationState(value.state, value.reason),
+            onEvent: recordSimulationEvent
+        });
+        await sessionController.start(result.parsed);
+    }
+    catch (error) {
+        console.error('Unable to start MSYNC simulation:', error);
+        updateSimulationState(MSYNC_SESSION_STATE.ERROR, error.message);
+        showToast('Unable to start simulation');
+    }
+}
+
+async function toggleSimulationPause() {
+    if (!sessionController) return;
+    if (sessionController.state === MSYNC_SESSION_STATE.PAUSED) {
+        await sessionController.resume();
+    }
+    else sessionController.pause();
 }

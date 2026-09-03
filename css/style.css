@@ -490,6 +490,36 @@ input[type="number"]:disabled {
     width: 100%;
 }
 
+.msync-simulation {
+    border-top: 1px solid var(--border);
+    margin-top: 4px;
+    padding-top: 10px;
+}
+
+.msync-session-state {
+    color: var(--text);
+    font-size: 0.76rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.msync-simulation-actions {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 8px;
+}
+
+.msync-simulation-actions .music-file-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.msync-event-log {
+    margin-top: 8px;
+    max-height: 180px;
+}
+
 
 /* === WIDE BUTTON STYLE === */
 

@@ -20,11 +20,11 @@ export async function sha256Blob(blob) {
     return sha256Bytes(await blob.arrayBuffer());
 }
 
-export async function prepareTrackForMsyncValidation(track) {
+export async function prepareTrackForMsyncValidation(track, options = {}) {
     if (!track || typeof track !== 'object') {
         throw new Error('A selected Track is required');
     }
-    if (track.metadata?.sha256) {
+    if (track.metadata?.sha256 && !options.forceHash) {
         return { track, hashBackfilled: false };
     }
     const sha256 = await sha256Blob(track.audioBlob);
@@ -86,7 +86,10 @@ export async function validateExternalMsyncFile(file, context = {}) {
     let preparedTrack = null;
     try {
         preparedTrack = context.track
-            ? await prepareTrackForMsyncValidation(context.track)
+            ? await prepareTrackForMsyncValidation(
+                context.track,
+                { forceHash: context.forceTrackHash === true }
+            )
             : null;
     }
     catch (error) {
