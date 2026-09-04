@@ -582,6 +582,11 @@ input[type="number"]:disabled {
     white-space: nowrap;
 }
 
+#voice-recognition-status {
+    color: var(--text-light);
+    font-size: 0.66rem;
+}
+
 .voice-ready-toggle {
     min-width: 64px;
     padding: 8px 12px;

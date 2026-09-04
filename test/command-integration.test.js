@@ -40,6 +40,7 @@ test('Voice Start Ready arms standard drills and starts only the armed key', asy
 
     assert.match(html, /id="voice-start-ready-toggle"/);
     assert.match(html, /id="voice-armed-status"/);
+    assert.match(html, /id="voice-recognition-status"/);
     assert.match(main, /drillArmingController\.isEnabled\(\)/);
     assert.match(main, /drillArmingController\.arm\(key, label\)/);
     assert.match(
@@ -49,6 +50,21 @@ test('Voice Start Ready arms standard drills and starts only the armed key', asy
     assert.match(
         main,
         /if \(mode === 'msync'\)[\s\S]*?drillArmingController\.clear\(\)/
+    );
+});
+
+test('voice recognition reports phrases without executing commands in Phase 4', async () => {
+    const main = await readFile(
+        new URL('../js/main.js', import.meta.url),
+        'utf8'
+    );
+
+    assert.match(main, /createVoiceRecognitionEngine\s*\(\s*\{/);
+    assert.match(main, /onCommand:\s*\(\{\s*phrase\s*\}\)\s*=>/);
+    assert.match(main, /Phase 6 will route this/);
+    assert.doesNotMatch(
+        main,
+        /onCommand:[\s\S]{0,300}standardCommandController\.execute/
     );
 });
 

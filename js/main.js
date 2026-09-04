@@ -66,6 +66,11 @@ import {
     createDrillArmingController
 } from './drill-arming.js';
 
+import {
+    VOICE_RECOGNITION_STATES,
+    createVoiceRecognitionEngine
+} from './voice-recognition.js';
+
 
 import {
     loadPlaylist,
@@ -104,6 +109,47 @@ import {
 
 const drillArmingController = createDrillArmingController({
     isDrillAvailable: (key) => Boolean(currentDrills[key])
+});
+
+function updateVoiceRecognitionStatus(message) {
+    const status = document.getElementById(
+        'voice-recognition-status'
+    );
+
+    if (status) {
+        status.textContent = message;
+    }
+}
+
+const voiceRecognitionEngine = createVoiceRecognitionEngine({
+    scope: window,
+    onStatus: (status) => {
+        updateVoiceRecognitionStatus(status.message);
+
+        if (
+            !status.enabled &&
+            (
+                status.state === VOICE_RECOGNITION_STATES.ERROR ||
+                status.state === VOICE_RECOGNITION_STATES.UNSUPPORTED
+            )
+        ) {
+            drillArmingController.setEnabled(false);
+            updateVoiceReadyUI();
+        }
+    },
+    onTranscript: ({ transcript, command }) => {
+        if (!command) {
+            updateVoiceRecognitionStatus(
+                `Ignored — ${transcript || 'unrecognized speech'}`
+            );
+        }
+    },
+    onCommand: ({ phrase }) => {
+        // Phase 6 will route this into the canonical command controller.
+        updateVoiceRecognitionStatus(
+            `Heard — ${phrase}`
+        );
+    }
 });
 
 function getStandardCommandState() {
@@ -166,9 +212,25 @@ function updateVoiceReadyUI() {
     });
 }
 
-function setVoiceStartReady(enabled) {
-    drillArmingController.setEnabled(enabled);
+async function setVoiceStartReady(enabled) {
+    if (!enabled) {
+        voiceRecognitionEngine.stop();
+        drillArmingController.setEnabled(false);
+        updateVoiceReadyUI();
+        return true;
+    }
+
+    drillArmingController.setEnabled(true);
     updateVoiceReadyUI();
+
+    const started = await voiceRecognitionEngine.start();
+
+    if (!started && !voiceRecognitionEngine.isEnabled()) {
+        drillArmingController.setEnabled(false);
+        updateVoiceReadyUI();
+    }
+
+    return started;
 }
 
 function startArmedStandardDrill() {
