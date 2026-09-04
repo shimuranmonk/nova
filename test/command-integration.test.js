@@ -41,6 +41,8 @@ test('Voice Start Ready arms standard drills and starts only the armed key', asy
     assert.match(html, /id="voice-start-ready-toggle"/);
     assert.match(html, /id="voice-armed-status"/);
     assert.match(html, /id="voice-recognition-status"/);
+    assert.match(html, /id="voice-test-toggle"/);
+    assert.match(html, /id="voice-test-output"/);
     assert.match(main, /drillArmingController\.isEnabled\(\)/);
     assert.match(main, /drillArmingController\.arm\(key, label\)/);
     assert.match(
@@ -62,6 +64,10 @@ test('voice recognition reports phrases without executing commands in Phase 4', 
     assert.match(main, /createVoiceRecognitionEngine\s*\(\s*\{/);
     assert.match(main, /onCommand:\s*\(\{\s*phrase\s*\}\)\s*=>/);
     assert.match(main, /Phase 6 will route this/);
+    assert.match(
+        main,
+        /onCommand:[\s\S]{0,150}voiceTestMode\.isActive\(\)[\s\S]{0,80}return/
+    );
     assert.doesNotMatch(
         main,
         /onCommand:[\s\S]{0,300}standardCommandController\.execute/

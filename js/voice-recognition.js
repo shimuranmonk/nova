@@ -59,6 +59,7 @@ export function createVoiceRecognitionEngine({
     let localModeRejected = false;
     let lastCommand = null;
     let lastCommandAt = -Infinity;
+    let speechStartedAt = null;
 
     function report(state, message, extra = {}) {
         onStatus({
@@ -111,10 +112,14 @@ export function createVoiceRecognitionEngine({
                 ? result[0].confidence
                 : null;
             const match = matchVoiceCommand(transcript);
+            const recognizedAt = now();
             const detail = {
                 ...match,
                 transcript,
-                confidence
+                confidence,
+                recognitionMs: speechStartedAt === null
+                    ? null
+                    : Math.max(0, recognizedAt - speechStartedAt)
             };
 
             onTranscript(detail);
@@ -123,17 +128,15 @@ export function createVoiceRecognitionEngine({
                 continue;
             }
 
-            const timestamp = now();
-
             if (
                 match.command === lastCommand &&
-                timestamp - lastCommandAt < duplicateWindowMs
+                recognizedAt - lastCommandAt < duplicateWindowMs
             ) {
                 continue;
             }
 
             lastCommand = match.command;
-            lastCommandAt = timestamp;
+            lastCommandAt = recognizedAt;
             onCommand(detail);
         }
     }
@@ -210,6 +213,9 @@ export function createVoiceRecognitionEngine({
                     ? 'Listening — on-device recognition'
                     : 'Listening — online recognition may be used'
             );
+        };
+        recognition.onspeechstart = () => {
+            speechStartedAt = now();
         };
         recognition.onresult = handleResult;
         recognition.onerror = handleError;

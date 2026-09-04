@@ -323,15 +323,34 @@
                 <span id="voice-recognition-status">Voice recognition off</span>
             </div>
 
-            <button
-                type="button"
-                id="voice-start-ready-toggle"
-                class="voice-ready-toggle"
-                role="switch"
-                aria-checked="false"
-            >
-                Off
-            </button>
+            <div class="voice-ready-actions">
+                <button
+                    type="button"
+                    id="voice-start-ready-toggle"
+                    class="voice-ready-toggle"
+                    role="switch"
+                    aria-checked="false"
+                >
+                    Off
+                </button>
+                <button
+                    type="button"
+                    id="voice-test-toggle"
+                    class="voice-test-toggle"
+                    aria-pressed="false"
+                    disabled
+                >
+                    Test Voice
+                </button>
+            </div>
+        </div>
+
+        <div id="voice-test-output" class="voice-test-output hidden">
+            <strong>TEST MODE — commands disabled</strong>
+            <span id="voice-test-transcript">Heard: Waiting…</span>
+            <span id="voice-test-command">Mapped: Waiting…</span>
+            <span id="voice-test-confidence">Confidence: —</span>
+            <span id="voice-test-latency">Recognition time: —</span>
         </div>
 
 

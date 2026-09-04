@@ -136,6 +136,8 @@ test('ignores interim and unknown speech and deduplicates final commands', async
     await engine.start();
     const active = Recognition.instances.at(-1);
 
+    active.onspeechstart();
+    clock += 320;
     active.onresult({
         resultIndex: 0,
         results: [{ isFinal: false, 0: { transcript: 'nova start' } }]
@@ -162,6 +164,7 @@ test('ignores interim and unknown speech and deduplicates final commands', async
     assert.equal(commands.length, 2);
     assert.equal(commands[0].command, COMMANDS.START);
     assert.equal(commands[0].confidence, 0.9);
+    assert.equal(commands[0].recognitionMs, 320);
 });
 
 test('restarts after browser end only while enabled', async () => {

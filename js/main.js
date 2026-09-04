@@ -71,6 +71,10 @@ import {
     createVoiceRecognitionEngine
 } from './voice-recognition.js';
 
+import {
+    createVoiceTestMode
+} from './voice-test-mode.js';
+
 
 import {
     loadPlaylist,
@@ -121,6 +125,62 @@ function updateVoiceRecognitionStatus(message) {
     }
 }
 
+function formatVoiceConfidence(confidence) {
+    return Number.isFinite(confidence)
+        ? `${Math.round(confidence * 100)}%`
+        : '—';
+}
+
+function updateVoiceTestUI({ active, latestResult }) {
+    const toggle = document.getElementById('voice-test-toggle');
+    const output = document.getElementById('voice-test-output');
+
+    if (toggle) {
+        toggle.setAttribute('aria-pressed', String(active));
+        toggle.textContent = active ? 'End Test' : 'Test Voice';
+    }
+
+    output?.classList.toggle('hidden', !active);
+
+    if (!active) {
+        return;
+    }
+
+    const transcript = document.getElementById('voice-test-transcript');
+    const command = document.getElementById('voice-test-command');
+    const confidence = document.getElementById('voice-test-confidence');
+    const latency = document.getElementById('voice-test-latency');
+
+    if (transcript) {
+        transcript.textContent = latestResult
+            ? `Heard: ${latestResult.transcript || '—'}`
+            : 'Heard: Waiting…';
+    }
+
+    if (command) {
+        command.textContent = latestResult
+            ? `Mapped: ${latestResult.command || 'NO MATCH'}`
+            : 'Mapped: Waiting…';
+    }
+
+    if (confidence) {
+        confidence.textContent = latestResult
+            ? `Confidence: ${formatVoiceConfidence(latestResult.confidence)}`
+            : 'Confidence: —';
+    }
+
+    if (latency) {
+        latency.textContent = latestResult?.recognitionMs !== null &&
+            latestResult?.recognitionMs !== undefined
+            ? `Recognition time: ${Math.round(latestResult.recognitionMs)} ms`
+            : 'Recognition time: —';
+    }
+}
+
+const voiceTestMode = createVoiceTestMode({
+    onUpdate: updateVoiceTestUI
+});
+
 const voiceRecognitionEngine = createVoiceRecognitionEngine({
     scope: window,
     onStatus: (status) => {
@@ -133,11 +193,21 @@ const voiceRecognitionEngine = createVoiceRecognitionEngine({
                 status.state === VOICE_RECOGNITION_STATES.UNSUPPORTED
             )
         ) {
+            voiceTestMode.setActive(false);
             drillArmingController.setEnabled(false);
             updateVoiceReadyUI();
         }
     },
-    onTranscript: ({ transcript, command }) => {
+    onTranscript: (detail) => {
+        if (voiceTestMode.consume(detail)) {
+            updateVoiceRecognitionStatus(
+                'Test Mode — commands disabled'
+            );
+            return;
+        }
+
+        const { transcript, command } = detail;
+
         if (!command) {
             updateVoiceRecognitionStatus(
                 `Ignored — ${transcript || 'unrecognized speech'}`
@@ -145,6 +215,10 @@ const voiceRecognitionEngine = createVoiceRecognitionEngine({
         }
     },
     onCommand: ({ phrase }) => {
+        if (voiceTestMode.isActive()) {
+            return;
+        }
+
         // Phase 6 will route this into the canonical command controller.
         updateVoiceRecognitionStatus(
             `Heard — ${phrase}`
@@ -196,6 +270,12 @@ function updateVoiceReadyUI() {
         toggle.textContent = enabled ? 'On' : 'Off';
     }
 
+    const testToggle = document.getElementById('voice-test-toggle');
+
+    if (testToggle) {
+        testToggle.disabled = !enabled;
+    }
+
     if (status) {
         status.textContent = !enabled
             ? 'Off — drills start when tapped'
@@ -214,6 +294,7 @@ function updateVoiceReadyUI() {
 
 async function setVoiceStartReady(enabled) {
     if (!enabled) {
+        voiceTestMode.setActive(false);
         voiceRecognitionEngine.stop();
         drillArmingController.setEnabled(false);
         updateVoiceReadyUI();
@@ -302,6 +383,29 @@ function setupEventListeners() {
         voiceReadyToggle.onclick = () => {
             setVoiceStartReady(
                 !drillArmingController.isEnabled()
+            );
+        };
+    }
+
+    const voiceTestToggle =
+        document.getElementById('voice-test-toggle');
+
+    if (voiceTestToggle) {
+        voiceTestToggle.onclick = () => {
+            if (!drillArmingController.isEnabled()) {
+                return;
+            }
+
+            voiceTestMode.setActive(
+                !voiceTestMode.isActive()
+            );
+
+            updateVoiceRecognitionStatus(
+                voiceTestMode.isActive()
+                    ? 'Test Mode — commands disabled'
+                    : voiceRecognitionEngine.getMode() === 'local'
+                        ? 'Listening — on-device recognition'
+                        : 'Listening — online recognition may be used'
             );
         };
     }

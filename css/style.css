@@ -606,6 +606,57 @@ input[type="number"]:disabled {
     color: var(--primary);
 }
 
+.voice-ready-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.voice-test-toggle {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-light);
+    font: inherit;
+    font-size: 0.66rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.voice-test-toggle[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-dim);
+    color: var(--primary);
+}
+
+.voice-test-toggle:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.voice-test-output {
+    display: grid;
+    gap: 3px;
+    margin: -4px 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    background: var(--primary-dim);
+    color: var(--text-light);
+    font-size: 0.7rem;
+}
+
+.voice-test-output.hidden {
+    display: none;
+}
+
+.voice-test-output strong {
+    color: var(--primary);
+    font-size: 0.72rem;
+}
+
 .btn-drill {
     width: 100%;
     min-height: 60px;
