@@ -139,6 +139,7 @@ function recordSimulationEvent(event) {
     if (event.type === 'FLAVOR') detail = `FLAVOR ${event.flavor || 'NONE'}`;
     if (event.type === 'REST_START') detail = `REST ${event.durationMs / 1000}s`;
     if (event.type === 'REST_END') detail = 'REST END';
+    if (event.type === 'IDLE') detail = 'IDLE';
     if (event.type === 'COMPLETE') detail = `COMPLETE ${event.reason}`;
     if (event.type === 'ERROR') detail = `ERROR ${event.code}: ${event.message}`;
     simulationEvents.push(`${eventPosition(event.positionMs)}  ${detail}`);

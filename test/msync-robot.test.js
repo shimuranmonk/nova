@@ -173,3 +173,32 @@ test('DONE acknowledgements after STOP cannot restart ball delivery', async () =
 
     assert.equal(timers.length, 0);
 });
+
+test('IDLE cancels the active execution and permits only a STOP packet', async () => {
+    const sent = [];
+    let doneListener;
+    const timers = [];
+    const adapter = new MsyncRobotAdapter({
+        send: async packet => sent.push([...packet]),
+        subscribeDone: listener => { doneListener = listener; return () => {}; },
+        isConnected: () => true,
+        setTimer: callback => { timers.push(callback); return timers.length; },
+        clearTimer: () => {},
+        now: () => 0
+    });
+    adapter.configure(parsedFixture());
+    adapter.handleSessionEvent({
+        type: 'ACTIVATE',
+        active: { type: 'INLINE', name: 'INL_TEST' },
+        flavor: null
+    });
+    await adapter.queue;
+    sent.length = 0;
+    adapter.handleSessionEvent({ type: 'IDLE' });
+    await adapter.queue;
+    doneListener();
+
+    assert.equal(adapter.execution, null);
+    assert.deepEqual(sent, [ROBOT_STOP_PACKET]);
+    assert.equal(timers.length, 0);
+});

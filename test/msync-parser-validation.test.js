@@ -83,7 +83,7 @@ test('accepts the canonical MSYNC v1 benchmark', async () => {
 
     assert.equal(result.valid, true, JSON.stringify(result.errors));
     assert.deepEqual(result.summary, {
-        cues: 10,
+        cues: 11,
         drills: 2,
         inline: 1,
         flavors: 2,
@@ -248,6 +248,26 @@ test('external validation requires a selected Track and resolvable references', 
 test('STOP with a value is rejected by the grammar', () => {
     const result = validateMsyncSource(source('00:30.000 STOP=now'));
     assert.ok(result.errors.some(value => value.code === 'MALFORMED_STOP'));
+});
+
+test('accepts IDLE without a value and requires a new activation afterward', () => {
+    const valid = validateMsyncSource(source(`00:10.000 IDLE
+00:20.000 INLINE=INL_TEST`), { track: track() });
+    assert.equal(valid.valid, true, JSON.stringify(valid.errors));
+    assert.equal(valid.parsed.cues[1].type, 'IDLE');
+
+    const malformed = validateMsyncSource(source('00:10.000 IDLE=now'),
+        { track: track() });
+    assert.ok(malformed.errors.some(value => value.code === 'MALFORMED_IDLE'));
+
+    const noActiveDrill = validateMsyncSource(source(`00:10.000 IDLE
+00:20.000 REST=1`), { track: track() });
+    assert.ok(noActiveDrill.errors.some(value => value.code === 'REST_WITHOUT_DRILL'));
+
+    const startsIdle = validateMsyncSource(source().replace(
+        '00:00.000 INLINE=INL_TEST', '00:00.000 IDLE\n00:01.000 INLINE=INL_TEST'),
+    { track: track() });
+    assert.ok(startsIdle.errors.some(value => value.code === 'IDLE_WITHOUT_DRILL'));
 });
 
 test('builds one complete Track update without mutating the original', async () => {

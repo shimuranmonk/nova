@@ -327,7 +327,7 @@ Rules:
    rather than waiting for `CYCLE_PAUSE`.
 2. `REST` remains timeline-controlled and independently suspends robot firing.
 3. All scheduled robot actions use `ROBOT_LEAD`: drill, inline, flavor, REST
-   start, REST end, and STOP. Manual pause, manual stop, errors, and disconnects
+   start, REST end, IDLE, and STOP. Manual pause, manual stop, errors, and disconnects
    always stop immediately.
 4. All three fields affect MSYNC mode only.
 5. Duplicate, unknown, out-of-range, or incorrectly formatted fields are
@@ -395,7 +395,7 @@ Rules for one timestamp:
 2. At most one `FLAVOR` command is allowed.
 3. At most one `REST` command is allowed.
 4. A drill-selection command must appear before the `FLAVOR` intended for it.
-5. `STOP` must be the only command at its timestamp.
+5. `IDLE` and `STOP` must each be the only command at their timestamp.
 6. Duplicate and contradictory commands are validation errors.
 7. When combined, commands use this order:
 
@@ -525,7 +525,7 @@ Rules:
 
 ## CUES command grammar
 
-`[CUES]` supports exactly five file commands:
+`[CUES]` supports exactly six file commands:
 
 ```text
 DRILL=DRL_NAME
@@ -533,6 +533,7 @@ INLINE=INL_NAME
 FLAVOR=FLV_NAME
 FLAVOR=NONE
 REST=seconds
+IDLE
 STOP
 ```
 
@@ -555,6 +556,11 @@ flavor name.
 with at most three decimal places. Its end cannot exceed `[AUDIO].DURATION`.
 Music and cue processing continue while robot firing is suspended, after which
 the then-current drill and flavor resume.
+
+`IDLE` has no `=` or value. It immediately stops the active drill, cancels any
+pending cycle repeat or REST, and clears the active drill and flavor. Music and
+the cue timeline continue, but the robot remains idle until a later `DRILL` or
+`INLINE` cue. `IDLE` requires an active drill and must be alone at its timestamp.
 
 `STOP` has no `=` or value, occurs at most once and alone at its timestamp, and
 has no following cues. It terminates music, robot activity, scheduler, and
@@ -681,7 +687,7 @@ produce warnings.
 ## Active drill behavior
 
 A `DRILL` or `INLINE` cue selects the active drill. The active drill repeats
-until another `DRILL`, another `INLINE`, or `STOP` is reached. `FLV_REPS`
+until another `DRILL`, another `INLINE`, `IDLE`, or `STOP` is reached. `FLV_REPS`
 controls repetitions within each drill cycle; it does not limit the number of
 cycles.
 
@@ -709,13 +715,15 @@ Frozen behavior:
 5. When the rest ends, the currently selected drill resumes automatically.
 6. A `DRILL` or `INLINE` cue received during a rest updates the selected drill,
    but firing waits until the rest ends.
-7. `STOP` received during a rest ends the session and cancels the pending
+7. `IDLE` received during a rest cancels the rest and leaves the robot idle.
+8. `STOP` received during a rest ends the session and cancels the pending
    resumption.
 
 Command meanings remain distinct:
 
 ```text
 REST    stop robot balls temporarily; music and timeline continue
+IDLE    stop current drill indefinitely; music and timeline continue
 PAUSE   pause the complete MSYNC session, including music and timeline
 STOP    end the MSYNC session
 ```

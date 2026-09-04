@@ -189,6 +189,12 @@ export class MsyncRobotAdapter {
             this.paused = false;
             if (!this.resting && this.execution) this.replace();
         }
+        else if (event.type === 'IDLE') {
+            this.execution = null;
+            this.resting = false;
+            this.paused = false;
+            this.stopOnly('IDLE');
+        }
         else if (event.type === 'COMPLETE' || event.type === 'ERROR') {
             this.stopOnly(event.type);
         }

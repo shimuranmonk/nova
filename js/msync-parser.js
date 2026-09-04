@@ -80,8 +80,8 @@ function parseCue(text, line, issues) {
     const timestamp = match[1];
     const commandText = match[2];
 
-    if (commandText === 'STOP') {
-        return { timestamp, command: 'STOP', value: null, line };
+    if (commandText === 'STOP' || commandText === 'IDLE') {
+        return { timestamp, command: commandText, value: null, line };
     }
 
     const commandMatch = /^([A-Z]+)=(\S+)$/.exec(commandText);
@@ -96,12 +96,13 @@ function parseCue(text, line, issues) {
         return null;
     }
 
-    if (commandMatch[1] === 'STOP') {
+    if (commandMatch[1] === 'STOP' || commandMatch[1] === 'IDLE') {
+        const command = commandMatch[1];
         issues.push(error(
-            'MALFORMED_STOP',
+            `MALFORMED_${command}`,
             line,
             'CUES',
-            'STOP must not have an equals sign or value.'
+            `${command} must not have an equals sign or value.`
         ));
         return null;
     }

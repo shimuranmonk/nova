@@ -190,6 +190,38 @@ test('robot events lead written cues while logical events stay on the audio cloc
     assert.equal(controller.state, MSYNC_SESSION_STATE.PLAYING);
 });
 
+test('IDLE clears the active drill without ending audio or the session', async () => {
+    const audio = new FakeAudio();
+    const logicalEvents = [];
+    const robotEvents = [];
+    const parsed = {
+        session: { countdown: 0, cyclePause: 1, robotLead: 1.3 },
+        audio: { durationMs: 10000 },
+        cues: [
+            { timeMs: 2000, type: 'INLINE', name: 'INL_ONE' },
+            { timeMs: 5000, type: 'IDLE' },
+            { timeMs: 8000, type: 'INLINE', name: 'INL_ONE' }
+        ]
+    };
+    const controller = new MsyncSessionController({
+        audio,
+        setTimer: () => 1,
+        clearTimer: () => {},
+        onEvent: value => logicalEvents.push(value),
+        onRobotEvent: value => robotEvents.push(value)
+    });
+    await controller.start(parsed);
+    controller.processPosition(3700);
+    assert.equal(robotEvents.at(-1).type, 'IDLE');
+    assert.equal(controller.state, MSYNC_SESSION_STATE.PLAYING);
+    controller.processPosition(5000);
+    assert.equal(logicalEvents.at(-1).type, 'IDLE');
+    assert.equal(controller.active, null);
+    assert.equal(audio.playing, true);
+    controller.processPosition(8000);
+    assert.deepEqual(controller.active, { type: 'INLINE', name: 'INL_ONE' });
+});
+
 test('natural audio completion and playback errors clean all runtime state', async () => {
     const audio = new FakeAudio();
     const controller = new MsyncSessionController({
