@@ -49,9 +49,18 @@ import {
 import {
     startDrillSequence,
     stopRun,
-    togglePause,
+    pauseRun,
+    resumeRun,
+    getRunState,
     skipCountdown
 } from './runner.js';
+
+import {
+    COMMANDS,
+    COMMAND_RESULTS,
+    SESSION_STATES,
+    createCommandController
+} from './command-controller.js';
 
 
 import {
@@ -88,6 +97,34 @@ import {
     initializeMsyncUI,
     setMsyncModeActive
 } from './msync-ui.js';
+
+const standardCommandController = createCommandController({
+    getState: getRunState,
+    start: ({ drillName } = {}) => {
+        if (!bleState.isConnected) {
+            showToast('Device not connected');
+            return false;
+        }
+
+        return startDrillSequence(drillName);
+    },
+    stop: stopRun,
+    pause: pauseRun,
+    resume: resumeRun
+});
+
+function toggleStandardPause() {
+    const command =
+        getRunState() === SESSION_STATES.PAUSED
+            ? COMMANDS.RESUME
+            : COMMANDS.PAUSE;
+
+    return standardCommandController.execute(command);
+}
+
+function stopStandardRun() {
+    return standardCommandController.execute(COMMANDS.STOP);
+}
 
 
 
@@ -873,25 +910,29 @@ window.saveDrillChanges =
 
 
 window.togglePause =
-    togglePause;
+    toggleStandardPause;
 
 
 window.stopRun =
-    stopRun;
+    stopStandardRun;
 
 
 
 window.handleDrillClick =
     (key, btn) => {
 
-        if (!bleState.isConnected) {
-            showToast(
-                'Device not connected'
+        const outcome =
+            standardCommandController.execute(
+                COMMANDS.START,
+                { drillName: key }
             );
 
+        if (
+            outcome.status !==
+            COMMAND_RESULTS.EXECUTED
+        ) {
             return;
         }
-
 
         document
             .querySelectorAll(
@@ -908,9 +949,6 @@ window.handleDrillClick =
         btn.classList.add(
             'running'
         );
-
-
-        startDrillSequence(key);
     };
 
 

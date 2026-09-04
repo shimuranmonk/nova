@@ -2,6 +2,7 @@ import { currentDrills, selectedLevel, runMode, appStats, setLastPlayed } from '
 import { sendPacket, packBall, bleState } from './bluetooth.js';
 import { log, showToast, clamp, toggleBodyScroll } from './utils.js';
 import { updateStatsUI, updateLastPlayedHighlight } from './ui.js';
+import { SESSION_STATES } from './command-controller.js';
 
 import {
     playMusic,
@@ -15,6 +16,7 @@ import {
 
 let isRunning = false;
 let isPaused = false;
+let runState = SESSION_STATES.IDLE;
 let currentCount = 0;
 let targetCount = 0;
 let remainingTime = 0;
@@ -38,13 +40,17 @@ const ui = {
 };
 
 export function startDrillSequence(drillName) {
+    if (runState !== SESSION_STATES.IDLE) {
+        return false;
+    }
+
     const rawParams = currentDrills[drillName]
         ? currentDrills[drillName][selectedLevel]
         : null;
 
     if (!rawParams) {
         log("Drill data not found: " + drillName);
-        return;
+        return false;
     }
 
     // Filter inactive steps
@@ -59,7 +65,7 @@ export function startDrillSequence(drillName) {
         document.querySelectorAll('.btn-drill')
             .forEach(b => b.classList.remove('running'));
 
-        return;
+        return false;
     }
 
     // Music mode requires a valid playlist
@@ -69,11 +75,12 @@ export function startDrillSequence(drillName) {
         document.querySelectorAll('.btn-drill')
             .forEach(b => b.classList.remove('running'));
 
-        return;
+        return false;
     }
 
     activeDrillParams = executableSteps;
     activeDrillRandom = !!currentDrills[drillName].random;
+    runState = SESSION_STATES.COUNTDOWN;
 
     // Save last played state
     setLastPlayed(drillName);
@@ -139,6 +146,13 @@ export function startDrillSequence(drillName) {
         });
 
         playMusic().then((started) => {
+            if (runState !== SESSION_STATES.COUNTDOWN) {
+                if (started) {
+                    stopMusic();
+                }
+                return;
+            }
+
             if (!started) {
                 showToast("Unable to start music");
                 stopRun();
@@ -148,16 +162,22 @@ export function startDrillSequence(drillName) {
             startCountdown();
         });
 
-        return;
+        return true;
     }
 
     // Reps and Time start countdown normally
     startCountdown();
+    return true;
 }
 
 export function beginDrillExecution() {
+    if (runState !== SESSION_STATES.COUNTDOWN) {
+        return false;
+    }
+
     isRunning = true;
     isPaused = false;
+    runState = SESSION_STATES.RUNNING;
 
     // Increment drill count once per session
     appStats.drills += 1;
@@ -238,6 +258,7 @@ export function beginDrillExecution() {
     }
 
     runIteration();
+    return true;
 }
 
 async function runIteration() {
@@ -381,69 +402,83 @@ export function handleDone() {
     }
 }
 
-export function togglePause() {
-    if (isPaused) {
-        // -----------------------------------------
-        // RESUME
-        // -----------------------------------------
-        isPaused = false;
-
-        ui.btnPause.textContent = "PAUSE";
-        ui.btnPause.classList.remove('pulse-anim');
-
-        if (runMode === 'time') {
-            ui.progress.style.transition =
-                `stroke-dashoffset ${remainingTime}s linear`;
-
-            ui.progress.style.strokeDashoffset = '565';
-        }
-
-        if (runMode === 'music') {
-            playMusic().then((started) => {
-                if (!started && isRunning) {
-                    showToast("Unable to resume music");
-                    stopRun();
-                }
-            });
-        }
-
-        runIteration();
-
-    } else {
-        // -----------------------------------------
-        // PAUSE
-        // -----------------------------------------
-        isPaused = true;
-
-        ui.btnPause.textContent = "RESUME";
-        ui.btnPause.classList.add('pulse-anim');
-
-        clearTimeout(pauseTimer);
-
-        if (runMode === 'music') {
-            pauseMusic();
-        }
-
-        const computedStyle =
-            window.getComputedStyle(ui.progress);
-
-        const currentOffset =
-            computedStyle.getPropertyValue(
-                'stroke-dashoffset'
-            );
-
-        ui.progress.style.transition = 'none';
-
-        ui.progress.style.strokeDashoffset =
-            currentOffset;
-
-        sendPacket([0x80, 1, 0, 1]);
+export function resumeRun() {
+    if (runState !== SESSION_STATES.PAUSED) {
+        return false;
     }
+
+    isPaused = false;
+    runState = SESSION_STATES.RUNNING;
+
+    ui.btnPause.textContent = "PAUSE";
+    ui.btnPause.classList.remove('pulse-anim');
+
+    if (runMode === 'time') {
+        ui.progress.style.transition =
+            `stroke-dashoffset ${remainingTime}s linear`;
+
+        ui.progress.style.strokeDashoffset = '565';
+    }
+
+    if (runMode === 'music') {
+        playMusic().then((started) => {
+            if (!started && isRunning) {
+                showToast("Unable to resume music");
+                stopRun();
+            }
+        });
+    }
+
+    runIteration();
+    return true;
+}
+
+export function pauseRun() {
+    if (runState !== SESSION_STATES.RUNNING) {
+        return false;
+    }
+
+    isPaused = true;
+    runState = SESSION_STATES.PAUSED;
+
+    ui.btnPause.textContent = "RESUME";
+    ui.btnPause.classList.add('pulse-anim');
+
+    clearTimeout(pauseTimer);
+
+    if (runMode === 'music') {
+        pauseMusic();
+    }
+
+    const computedStyle =
+        window.getComputedStyle(ui.progress);
+
+    const currentOffset =
+        computedStyle.getPropertyValue(
+            'stroke-dashoffset'
+        );
+
+    ui.progress.style.transition = 'none';
+
+    ui.progress.style.strokeDashoffset =
+        currentOffset;
+
+    sendPacket([0x80, 1, 0, 1]);
+    return true;
+}
+
+export function togglePause() {
+    if (runState === SESSION_STATES.PAUSED) {
+        return resumeRun();
+    }
+
+    return pauseRun();
 }
 
 export function stopRun() {
     isRunning = false;
     isPaused = false;
+    runState = SESSION_STATES.IDLE;
 
     if (runMode === 'music') {
         stopMusic();
@@ -467,11 +502,16 @@ export function stopRun() {
     sendPacket([0x80, 1, 0, 1]);
 
     log("Drill Stopped");
+    return true;
+}
+
+export function getRunState() {
+    return runState;
 }
 
 // Skip Countdown
 export function skipCountdown() {
-    if (isRunning) return;
+    if (runState !== SESSION_STATES.COUNTDOWN) return;
 
     if (!ui.overlay.classList.contains('open')) {
         return;
