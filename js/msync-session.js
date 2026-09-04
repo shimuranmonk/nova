@@ -250,6 +250,12 @@ export class MsyncSessionController {
             this.onRobotEvent({ type: 'REST_START', ...details,
                 durationMs: cue.durationMs, untilMs: this.robotRestUntilMs });
         }
+        else if (cue.type === 'IDLE') {
+            this.robotActive = null;
+            this.robotFlavor = null;
+            this.robotRestUntilMs = null;
+            this.onRobotEvent({ type: 'IDLE', ...details });
+        }
         else if (cue.type === 'STOP') {
             this.onRobotEvent({ type: 'COMPLETE', ...details, reason: 'STOP_CUE' });
         }
@@ -276,6 +282,12 @@ export class MsyncSessionController {
                 durationMs: cue.durationMs,
                 untilMs: this.restUntilMs
             });
+        }
+        else if (cue.type === 'IDLE') {
+            this.active = null;
+            this.flavor = null;
+            this.restUntilMs = null;
+            this.emit('IDLE', { positionMs: cue.timeMs });
         }
         else if (cue.type === 'STOP') {
             this.complete('STOP_CUE');

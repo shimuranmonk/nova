@@ -360,7 +360,7 @@ function validateCues(rawCues, parsed, durationMs, issues) {
         }
         if (stopSeen) add(issues, issue('ERROR', 'CUE_AFTER_STOP', raw.line, 'CUES',
             'No cue may appear after STOP.'));
-        if (!['DRILL', 'INLINE', 'FLAVOR', 'REST', 'STOP'].includes(raw.command)) {
+        if (!['DRILL', 'INLINE', 'FLAVOR', 'REST', 'IDLE', 'STOP'].includes(raw.command)) {
             add(issues, issue('ERROR', 'UNKNOWN_CUE_COMMAND', raw.line, 'CUES',
                 `${raw.command} is not an MSYNC v1 cue command.`));
             continue;
@@ -372,6 +372,8 @@ function validateCues(rawCues, parsed, durationMs, issues) {
                 `Command ${raw.command} conflicts with another cue at ${raw.timestamp}.`));
         if (same.includes('STOP') || (raw.command === 'STOP' && same.length)) add(issues, issue('ERROR',
             'STOP_NOT_ALONE', raw.line, 'CUES', 'STOP must be alone at its timestamp.'));
+        if (same.includes('IDLE') || (raw.command === 'IDLE' && same.length)) add(issues, issue('ERROR',
+            'IDLE_NOT_ALONE', raw.line, 'CUES', 'IDLE must be alone at its timestamp.'));
         const rank = command => ['DRILL', 'INLINE'].includes(command)
             ? 0
             : command === 'FLAVOR'
@@ -430,6 +432,11 @@ function validateCues(rawCues, parsed, durationMs, issues) {
                     add(issues, issue('ERROR', 'REST_AFTER_DURATION', raw.line, 'CUES',
                         'REST extends beyond AUDIO DURATION.'));
             }
+        }
+        else if (raw.command === 'IDLE') {
+            if (!active) add(issues, issue('ERROR', 'IDLE_WITHOUT_DRILL', raw.line, 'CUES',
+                'IDLE requires an active drill.'));
+            active = null;
         }
         else if (raw.command === 'STOP') stopSeen = true;
         cues.push(cue);

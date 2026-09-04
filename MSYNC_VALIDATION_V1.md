@@ -15,6 +15,9 @@ Errors include unsupported versions, malformed syntax or sections, missing
 required audio identity, audio hash mismatch, duration mismatch beyond the
 approved tolerance, missing or malformed drills, invalid flavor values,
 undefined names, cues outside the declared duration, and invalid cue order.
+For `IDLE`, errors include an equals sign or value (`MALFORMED_IDLE`), sharing
+a timestamp with another command (`IDLE_NOT_ALONE`), or appearing when no drill
+is active (`IDLE_WITHOUT_DRILL`).
 
 Warnings include a filename difference when the audio hash matches and unused
 drill, flavor, or inline definitions. Omitted `STOP`, `[INFO]`, and `[SESSION]`
@@ -23,6 +26,25 @@ are allowed and may be reported informationally without blocking attachment.
 Nova never silently repairs an error or warning. Successful validation reports
 the cue, drill, inline-drill, and flavor counts, session duration, and warning
 count. A file containing warnings but no errors is valid.
+
+## IDLE cue validation
+
+`IDLE` is a non-terminal cue command. It uses the exact uppercase form with no
+equals sign or value:
+
+```text
+00:18.000 IDLE
+```
+
+Validation requires an active drill established by an earlier `DRILL` or
+`INLINE` cue. `IDLE` must be the only command at its timestamp. A valid `IDLE`
+clears the validator's active drill and flavor state, so a later `FLAVOR`,
+`REST`, or another `IDLE` is invalid until a new `DRILL` or `INLINE` activation.
+Unlike `STOP`, `IDLE` permits later cues and does not terminate the audio or
+session timeline. It may cancel an active REST.
+
+`ROBOT_LEAD` changes when the live robot receives a valid `IDLE`; it does not
+change the written cue timestamp or any of these validation rules.
 
 ## Atomic import and replacement
 
