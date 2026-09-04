@@ -79,6 +79,15 @@ test('canonical STOP is harmless while idle', () => {
     assert.equal(calls.length, 0);
 });
 
+test('canonical STOP is harmless while a drill is merely armed', () => {
+    const { controller, calls } = makeController(SESSION_STATES.ARMED);
+    const outcome = controller.execute(COMMANDS.STOP);
+
+    assert.equal(outcome.status, COMMAND_RESULTS.IGNORED);
+    assert.equal(outcome.reason, 'Nothing to stop');
+    assert.equal(calls.length, 0);
+});
+
 test('PAUSE and RESUME are explicit and idempotent', () => {
     const fixture = makeController(SESSION_STATES.RUNNING);
 

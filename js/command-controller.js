@@ -72,7 +72,10 @@ export function createCommandController({
 
             if (
                 command === COMMANDS.STOP &&
-                state === SESSION_STATES.IDLE
+                (
+                    state === SESSION_STATES.IDLE ||
+                    state === SESSION_STATES.ARMED
+                )
             ) {
                 return result(
                     COMMAND_RESULTS.IGNORED,

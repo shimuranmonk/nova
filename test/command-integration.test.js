@@ -9,7 +9,7 @@ test('standard drill commands are wired through the canonical controller', async
     );
 
     assert.match(main, /createCommandController\s*\(\s*\{/);
-    assert.match(main, /getState:\s*getRunState/);
+    assert.match(main, /getState:\s*getStandardCommandState/);
     assert.match(main, /start:\s*\(\{\s*drillName\s*\}/);
     assert.match(main, /stop:\s*stopRun/);
     assert.match(main, /pause:\s*pauseRun/);
@@ -26,6 +26,42 @@ test('standard drill commands are wired through the canonical controller', async
         main,
         /standardCommandController\.execute\(COMMANDS\.STOP\)/
     );
+});
+
+test('Voice Start Ready arms standard drills and starts only the armed key', async () => {
+    const main = await readFile(
+        new URL('../js/main.js', import.meta.url),
+        'utf8'
+    );
+    const html = await readFile(
+        new URL('../index.html', import.meta.url),
+        'utf8'
+    );
+
+    assert.match(html, /id="voice-start-ready-toggle"/);
+    assert.match(html, /id="voice-armed-status"/);
+    assert.match(main, /drillArmingController\.isEnabled\(\)/);
+    assert.match(main, /drillArmingController\.arm\(key, label\)/);
+    assert.match(
+        main,
+        /startArmedStandardDrill[\s\S]*?\{ drillName: armed\.key \}/
+    );
+    assert.match(
+        main,
+        /if \(mode === 'msync'\)[\s\S]*?drillArmingController\.clear\(\)/
+    );
+});
+
+test('armed START keeps all standard settings live in the existing runner', async () => {
+    const runner = await readFile(
+        new URL('../js/runner.js', import.meta.url),
+        'utf8'
+    );
+
+    assert.match(runner, /currentDrills\[drillName\]\[selectedLevel\]/);
+    assert.match(runner, /getElementById\('input-reps'\)\.value/);
+    assert.match(runner, /getElementById\('input-time'\)\.value/);
+    assert.match(runner, /runMode === 'music' && !hasPlaylist\(\)/);
 });
 
 test('runner exposes explicit state and separate pause and resume operations', async () => {

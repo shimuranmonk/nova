@@ -62,6 +62,10 @@ import {
     createCommandController
 } from './command-controller.js';
 
+import {
+    createDrillArmingController
+} from './drill-arming.js';
+
 
 import {
     loadPlaylist,
@@ -98,8 +102,26 @@ import {
     setMsyncModeActive
 } from './msync-ui.js';
 
+const drillArmingController = createDrillArmingController({
+    isDrillAvailable: (key) => Boolean(currentDrills[key])
+});
+
+function getStandardCommandState() {
+    const runnerState = getRunState();
+
+    if (
+        runnerState === SESSION_STATES.IDLE &&
+        drillArmingController.isEnabled() &&
+        drillArmingController.getArmedDrill()
+    ) {
+        return SESSION_STATES.ARMED;
+    }
+
+    return runnerState;
+}
+
 const standardCommandController = createCommandController({
-    getState: getRunState,
+    getState: getStandardCommandState,
     start: ({ drillName } = {}) => {
         if (!bleState.isConnected) {
             showToast('Device not connected');
@@ -112,6 +134,60 @@ const standardCommandController = createCommandController({
     pause: pauseRun,
     resume: resumeRun
 });
+
+function updateVoiceReadyUI() {
+    const enabled = drillArmingController.isEnabled();
+    const armed = drillArmingController.reconcile();
+    const toggle = document.getElementById(
+        'voice-start-ready-toggle'
+    );
+    const status = document.getElementById(
+        'voice-armed-status'
+    );
+
+    if (toggle) {
+        toggle.setAttribute('aria-checked', String(enabled));
+        toggle.textContent = enabled ? 'On' : 'Off';
+    }
+
+    if (status) {
+        status.textContent = !enabled
+            ? 'Off — drills start when tapped'
+            : armed
+                ? `Armed — ${armed.label}`
+                : 'On — tap a drill to arm';
+    }
+
+    document.querySelectorAll('.btn-drill').forEach((button) => {
+        button.classList.toggle(
+            'armed',
+            Boolean(enabled && armed && button.dataset.key === armed.key)
+        );
+    });
+}
+
+function setVoiceStartReady(enabled) {
+    drillArmingController.setEnabled(enabled);
+    updateVoiceReadyUI();
+}
+
+function startArmedStandardDrill() {
+    const armed = drillArmingController.getArmedDrill();
+
+    if (!drillArmingController.isEnabled() || !armed) {
+        return {
+            status: COMMAND_RESULTS.BLOCKED,
+            command: COMMANDS.START,
+            state: getStandardCommandState(),
+            reason: 'No drill armed'
+        };
+    }
+
+    return standardCommandController.execute(
+        COMMANDS.START,
+        { drillName: armed.key }
+    );
+}
 
 function toggleStandardPause() {
     const command =
@@ -143,6 +219,8 @@ document.addEventListener(
 
         initializeMsyncUI();
 
+        setVoiceStartReady(false);
+
         console.log(
             'Nova Drill Control: Modules Loaded'
         );
@@ -154,6 +232,17 @@ document.addEventListener(
 // --- Event Listeners Setup ---
 
 function setupEventListeners() {
+
+    const voiceReadyToggle =
+        document.getElementById('voice-start-ready-toggle');
+
+    if (voiceReadyToggle) {
+        voiceReadyToggle.onclick = () => {
+            setVoiceStartReady(
+                !drillArmingController.isEnabled()
+            );
+        };
+    }
 
     const btnConnect =
         document.getElementById('btn-connect');
@@ -466,6 +555,8 @@ function setupEventListeners() {
             renderDrillButtons();
 
             updateDrillButtonStates();
+
+            updateVoiceReadyUI();
         }
     );
 
@@ -722,6 +813,11 @@ window.setMode =
 
         setMode(mode);
 
+        if (mode === 'msync') {
+            drillArmingController.clear();
+            updateVoiceReadyUI();
+        }
+
 
         document
             .querySelectorAll(
@@ -921,6 +1017,18 @@ window.stopRun =
 window.handleDrillClick =
     (key, btn) => {
 
+        if (drillArmingController.isEnabled()) {
+            const label =
+                btn?.querySelector('span')?.textContent || key;
+
+            if (drillArmingController.arm(key, label)) {
+                updateVoiceReadyUI();
+                showToast(`Armed: ${label}`);
+            }
+
+            return;
+        }
+
         const outcome =
             standardCommandController.execute(
                 COMMANDS.START,
@@ -950,6 +1058,11 @@ window.handleDrillClick =
             'running'
         );
     };
+
+
+// Phase 4 will call this after recognizing NOVA START.
+window.startArmedStandardDrill =
+    startArmedStandardDrill;
 
 
 
