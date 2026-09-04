@@ -208,7 +208,7 @@ parameters:
 NAME=Short Backspin Pattern
 RANDOM=false
 
-BALL=1;SPEED=5;SPIN=6;TYPE=back;HEIGHT=20;DROP=-4;BPM=45;REPS=2
+BALL=1;SPEED=5;SPIN=6;TYPE=back;HEIGHT=20;DROP=-4;BPM=45;REPS=2;SCATTER=2
 BALL=2;SPEED=7;SPIN=4;TYPE=top;HEIGHT=45;DROP=4;BPM=55;REPS=1
 ```
 
@@ -219,7 +219,8 @@ Rules:
 3. `RANDOM` is optional and defaults to `false`.
 4. At least one `BALL` line is required.
 5. Every `BALL` line contains a ball number plus `SPEED`, `SPIN`, `TYPE`,
-   `HEIGHT`, `DROP`, `BPM`, and `REPS`.
+   `HEIGHT`, `DROP`, `BPM`, and `REPS`. `SCATTER` is optional and defaults to
+   zero.
 6. Parameter names, values, ranges, and increments match Nova's published
    technical parameters.
 7. Named fields after the ball number may appear in any order.
@@ -232,8 +233,21 @@ Rules:
 12. An activated inline drill repeats until replaced or stopped, like a
     referenced built-in drill.
 13. A flavor may override the active inline drill.
-14. `SCATTER` and `ACTIVE` are excluded from MSYNC v1 inline drills because
-    they are not part of the selected published parameter set.
+14. `SCATTER` ranges from 0 through 10 in increments of 0.5. Absolute `DROP`
+    plus `SCATTER` cannot exceed 10. `ACTIVE` remains excluded; disabled Nova
+    balls are omitted when copying an inline representation.
+
+### Copying a Nova drill as inline
+
+The drill editor provides **Copy as MSYNC Inline** for every built-in and
+custom drill. It exports the currently selected difficulty level using a legal
+`INL_` alias and copies the complete section to the clipboard. Ball order,
+active alternatives, direct ball parameters, repetitions, random order, and
+scatter are preserved. Repeated `BALL` numbers represent alternatives.
+
+This is distinct from **Copy MSYNC Reference**, which copies a short local
+custom-drill UUID reference. An exported inline section is portable and does
+not require the source drill to exist on the destination device.
 
 ## Flavor application and scope
 

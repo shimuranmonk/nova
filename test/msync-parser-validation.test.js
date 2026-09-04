@@ -57,6 +57,18 @@ test('accepts a valid minimal MSYNC v1 source', () => {
     assert.equal(result.parsed.inline.INL_TEST.balls[0].speed, 5);
 });
 
+test('accepts optional inline SCATTER and validates its drop envelope', () => {
+    const valid = validateMsyncSource(source().replace('REPS=2',
+        'REPS=2;SCATTER=6'), { track: track() });
+    assert.equal(valid.valid, true, JSON.stringify(valid.errors));
+    assert.equal(valid.parsed.inline.INL_TEST.balls[0].scatter, 6);
+
+    const invalid = validateMsyncSource(source()
+        .replace('DROP=0', 'DROP=4')
+        .replace('REPS=2', 'REPS=2;SCATTER=6.5'), { track: track() });
+    assert.ok(invalid.errors.some(value => value.code === 'INVALID_DROP_SCATTER'));
+});
+
 test('accepts and bounds SESSION ROBOT_LEAD', () => {
     const valid = validateMsyncSource(source().replace('[AUDIO]',
         '[SESSION]\nROBOT_LEAD=1.275\n\n[AUDIO]'), { track: track() });

@@ -8,6 +8,7 @@ import {
     findCustomDrillByKey,
     isValidCustomDrillId
 } from './custom-drill-identity.js';
+import { createMsyncInlineBlock } from './msync-inline-export.js';
 
 // --- Local State ---
 let tempDrillData = null;
@@ -681,5 +682,26 @@ window.handleCopyMsyncReference = async () => {
     catch (error) {
         console.error('Unable to copy MSYNC reference:', error);
         window.prompt('Copy MSYNC Reference:', reference);
+    }
+};
+
+window.handleCopyMsyncInline = async () => {
+    if (!editingDrillKey || !tempDrillData) return;
+    try {
+        const name = document.getElementById('editor-drill-name')?.textContent || editingDrillKey;
+        const inline = createMsyncInlineBlock({
+            name,
+            steps: tempDrillData,
+            random: document.getElementById('chk-drill-random')?.checked || false
+        });
+        if (navigator.clipboard?.writeText) {
+            await navigator.clipboard.writeText(inline);
+            showToast('MSYNC inline copied');
+        }
+        else window.prompt('Copy as MSYNC Inline:', inline);
+    }
+    catch (error) {
+        console.error('Unable to copy MSYNC inline:', error);
+        showToast(error?.message || 'MSYNC inline export failed');
     }
 };
