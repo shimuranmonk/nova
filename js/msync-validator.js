@@ -208,6 +208,9 @@ const BALL_RULES = {
     BPM: { min: 30, max: 90, step: 1 },
     REPS: { min: 1, max: 200, step: 1 }
 };
+const OPTIONAL_BALL_RULES = {
+    SCATTER: { min: 0, max: 10, step: 0.5 }
+};
 
 function validateBall(entry, section, issues) {
     const parts = entry.value.split(';');
@@ -223,7 +226,8 @@ function validateBall(entry, section, issues) {
                 `Malformed BALL field: ${part}.`));
             continue;
         }
-        if (!Object.hasOwn(BALL_RULES, match[1]) && match[1] !== 'TYPE') {
+        if (!Object.hasOwn(BALL_RULES, match[1]) &&
+            !Object.hasOwn(OPTIONAL_BALL_RULES, match[1]) && match[1] !== 'TYPE') {
             add(issues, issue('ERROR', 'UNKNOWN_BALL_FIELD', entry.line, section,
                 `${match[1]} is not an MSYNC v1 BALL field.`));
         }
@@ -243,9 +247,20 @@ function validateBall(entry, section, issues) {
             `${key} is outside its allowed range or increment.`, { found: fields[key] }));
         else output[key.toLowerCase()] = value;
     }
+    for (const [key, rule] of Object.entries(OPTIONAL_BALL_RULES)) {
+        if (!Object.hasOwn(fields, key)) continue;
+        const value = exactNumber(fields[key], rule);
+        if (value === null) add(issues, issue('ERROR', 'INVALID_BALL_VALUE', entry.line, section,
+            `${key} is outside its allowed range or increment.`, { found: fields[key] }));
+        else output[key.toLowerCase()] = value;
+    }
     if (fields.TYPE && !['top', 'back'].includes(fields.TYPE)) add(issues, issue('ERROR',
         'INVALID_BALL_TYPE', entry.line, section, 'TYPE must be top or back.', { found: fields.TYPE }));
     else if (fields.TYPE) output.type = fields.TYPE;
+    if (Number.isFinite(output.drop) && Number.isFinite(output.scatter) &&
+        Math.abs(output.drop) + output.scatter > 10) add(issues, issue('ERROR',
+        'INVALID_DROP_SCATTER', entry.line, section,
+        'Absolute DROP plus SCATTER cannot exceed 10.'));
     if (output.speed !== undefined && output.spin !== undefined &&
         output.spin > (SPIN_LIMITS[String(output.speed)] ?? -1)) add(issues, issue('ERROR',
         'INVALID_SPEED_SPIN', entry.line, section,

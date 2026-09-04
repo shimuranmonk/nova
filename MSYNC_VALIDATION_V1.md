@@ -27,6 +27,12 @@ Nova never silently repairs an error or warning. Successful validation reports
 the cue, drill, inline-drill, and flavor counts, session duration, and warning
 count. A file containing warnings but no errors is valid.
 
+Inline `SCATTER` is optional. When supplied, it must range from 0 through 10 in
+increments of 0.5, and absolute `DROP` plus `SCATTER` must not exceed 10.
+Violations produce `INVALID_BALL_VALUE` or `INVALID_DROP_SCATTER`. Inline text
+created by **Copy as MSYNC Inline** is subject to the same validation as an
+externally handwritten section.
+
 ## IDLE cue validation
 
 `IDLE` is a non-terminal cue command. It uses the exact uppercase form with no
