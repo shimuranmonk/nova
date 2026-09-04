@@ -138,3 +138,5 @@ Recognition will be local-first when the browser supports installed on-device re
 ## Phase 1 completion gate
 
 Phase 1 is complete only when this behavior contract is approved. Implementation begins in Phase 2 and must preserve these rules unless a later contract revision is explicitly approved.
+
+Note: Drafted in Alapaap.net - Open Mind Open Skies. Sure beats designing on paper.
