@@ -79,6 +79,9 @@ test('ships every required MSYNC import control in the page', async () => {
     assert.match(html, /id="playlist-manager-library-view"/);
     assert.match(html, /id="playlist-library-list"/);
     assert.match(html, /id="ui-quick-music"/);
+    assert.match(html, /id="quick-stored-track-select"/);
+    assert.match(html, /id="btn-use-quick-stored-track"/);
+    assert.match(html, /id="quick-music-save-library"/);
     assert.match(html, /id="btn-copy-msync-inline"/);
     assert.match(html, /<title>Nova Drill Control PLUS<\/title>/);
     assert.match(html, /<h1>Nova Drill Control PLUS<\/h1>/);
