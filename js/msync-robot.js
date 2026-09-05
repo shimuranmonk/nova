@@ -88,7 +88,8 @@ export function resolveMsyncExecution(parsed, active, flavorName = null) {
         return {
             name: active.name,
             steps: referencedSteps(definition, flavor),
-            random: Boolean(definition.random)
+            random: Boolean(definition.random),
+            once: Boolean(active.once)
         };
     }
     const definition = parsed.inline[active.name];
@@ -96,8 +97,17 @@ export function resolveMsyncExecution(parsed, active, flavorName = null) {
     return {
         name: active.name,
         steps: inlineSteps(definition, flavor),
-        random: Boolean(definition.random)
+        random: Boolean(definition.random),
+        once: Boolean(active.once)
     };
+}
+
+function estimatedCycleDurationMs(balls) {
+    return balls.reduce((total, ball) => {
+        const bpm = 30 + ball[4] * 0.6;
+        const reps = Math.max(1, ball[5] || 1);
+        return total + reps * 60000 / Math.max(1, bpm);
+    }, 0);
 }
 
 export function chooseMsyncBalls(execution, random = Math.random) {
@@ -152,8 +162,10 @@ export class MsyncRobotAdapter {
         this.resting = false;
         this.paused = false;
         this.awaitingCycleDone = false;
+        this.onceCompleted = false;
         this.generation = 0;
         this.repeatTimer = null;
+        this.completionTimer = null;
         this.queue = Promise.resolve();
         this.unsubscribeDone = subscribeDone(() => this.handleDone());
         this.cyclePauseMs = 1000;
@@ -165,7 +177,17 @@ export class MsyncRobotAdapter {
     }
 
     handleSessionEvent(event) {
-        if (event.type === 'ACTIVATE' || event.type === 'FLAVOR') {
+        if (event.type === 'ACTIVATE') {
+            this.onceCompleted = false;
+            this.execution = resolveMsyncExecution(
+                this.parsed,
+                event.active,
+                event.flavor
+            );
+            if (!this.resting && !this.paused) this.replace();
+        }
+        else if (event.type === 'FLAVOR') {
+            if (this.onceCompleted && event.active?.once) return;
             this.execution = resolveMsyncExecution(
                 this.parsed,
                 event.active,
@@ -191,6 +213,7 @@ export class MsyncRobotAdapter {
         }
         else if (event.type === 'IDLE') {
             this.execution = null;
+            this.onceCompleted = false;
             this.resting = false;
             this.paused = false;
             this.stopOnly('IDLE');
@@ -204,7 +227,9 @@ export class MsyncRobotAdapter {
         const generation = ++this.generation;
         this.awaitingCycleDone = false;
         this.clearTimer(this.repeatTimer);
+        this.clearTimer(this.completionTimer);
         this.repeatTimer = null;
+        this.completionTimer = null;
         this.queue = this.queue.then(async () => {
             if (generation !== this.generation) return;
             if (!this.isConnected()) throw new Error('Robot disconnected');
@@ -214,6 +239,16 @@ export class MsyncRobotAdapter {
             const balls = chooseMsyncBalls(this.execution);
             await this.send(buildMsyncDrillPacket(balls));
             this.awaitingCycleDone = true;
+            if (!this.execution.once) {
+                const expectedMs = estimatedCycleDurationMs(balls);
+                this.completionTimer = this.setTimer(() => {
+                    if (generation !== this.generation || !this.awaitingCycleDone ||
+                        this.resting || this.paused) return;
+                    this.awaitingCycleDone = false;
+                    this.onDiagnostic({ type: 'ROBOT_DONE_FALLBACK', expectedMs });
+                    this.scheduleRepeat(generation);
+                }, expectedMs + 250);
+            }
             this.onDiagnostic({
                 type: 'ROBOT_REPLACE_SENT',
                 ballCount: balls.length,
@@ -230,7 +265,9 @@ export class MsyncRobotAdapter {
         ++this.generation;
         this.awaitingCycleDone = false;
         this.clearTimer(this.repeatTimer);
+        this.clearTimer(this.completionTimer);
         this.repeatTimer = null;
+        this.completionTimer = null;
         this.queue = this.queue.then(async () => {
             if (this.isConnected()) await this.send(ROBOT_STOP_PACKET);
             this.onDiagnostic({ type: 'ROBOT_STOP_SENT', reason });
@@ -244,7 +281,19 @@ export class MsyncRobotAdapter {
     handleDone() {
         if (!this.awaitingCycleDone || !this.execution || this.resting || this.paused || !this.isConnected()) return;
         this.awaitingCycleDone = false;
+        this.clearTimer(this.completionTimer);
+        this.completionTimer = null;
+        if (this.execution.once) {
+            this.execution = null;
+            this.onceCompleted = true;
+            this.onDiagnostic({ type: 'ROBOT_ONCE_COMPLETE' });
+            return;
+        }
         const generation = this.generation;
+        this.scheduleRepeat(generation);
+    }
+
+    scheduleRepeat(generation) {
         this.clearTimer(this.repeatTimer);
         this.repeatTimer = this.setTimer(() => {
             if (generation === this.generation && !this.resting && !this.paused) this.replace();

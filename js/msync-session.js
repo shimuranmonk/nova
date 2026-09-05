@@ -235,7 +235,8 @@ export class MsyncSessionController {
             leadMs
         };
         if (cue.type === 'DRILL' || cue.type === 'INLINE') {
-            this.robotActive = { type: cue.type, name: cue.name };
+            this.robotActive = { type: cue.type, name: cue.name,
+                ...(cue.once ? { once: true } : {}) };
             this.robotFlavor = null;
             this.onRobotEvent({ type: 'ACTIVATE', ...details,
                 active: this.robotActive, flavor: null });
@@ -263,7 +264,8 @@ export class MsyncSessionController {
 
     applyCue(cue) {
         if (cue.type === 'DRILL' || cue.type === 'INLINE') {
-            this.active = { type: cue.type, name: cue.name };
+            this.active = { type: cue.type, name: cue.name,
+                ...(cue.once ? { once: true } : {}) };
             this.flavor = null;
             this.emit('ACTIVATE', { positionMs: cue.timeMs, active: this.active });
         }

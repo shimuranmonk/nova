@@ -57,6 +57,22 @@ test('accepts a valid minimal MSYNC v1 source', () => {
     assert.equal(result.parsed.inline.INL_TEST.balls[0].speed, 5);
 });
 
+test('accepts ONCE only on DRILL and INLINE activations', () => {
+    const inlineOnce = validateMsyncSource(source().replace(
+        'INLINE=INL_TEST', 'INLINE=INL_TEST;ONCE'), { track: track() });
+    assert.equal(inlineOnce.valid, true, JSON.stringify(inlineOnce.errors));
+    assert.equal(inlineOnce.parsed.cues[0].once, true);
+
+    const flavorOnce = validateMsyncSource(source(`00:01.000 FLAVOR=NONE;ONCE`),
+        { track: track() });
+    assert.ok(flavorOnce.errors.some(value => value.code === 'ONCE_NOT_ALLOWED'));
+
+    const afterOnce = validateMsyncSource(source().replace(
+        '00:00.000 INLINE=INL_TEST',
+        '00:00.000 INLINE=INL_TEST;ONCE\n00:05.000 REST=1'), { track: track() });
+    assert.ok(afterOnce.errors.some(value => value.code === 'REST_WITHOUT_DRILL'));
+});
+
 test('accepts optional inline SCATTER and validates its drop envelope', () => {
     const valid = validateMsyncSource(source().replace('REPS=2',
         'REPS=2;SCATTER=6'), { track: track() });
@@ -95,7 +111,7 @@ test('accepts the canonical MSYNC v1 benchmark', async () => {
 
     assert.equal(result.valid, true, JSON.stringify(result.errors));
     assert.deepEqual(result.summary, {
-        cues: 11,
+        cues: 12,
         drills: 2,
         inline: 1,
         flavors: 2,

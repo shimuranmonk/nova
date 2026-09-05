@@ -39,6 +39,22 @@ Violations produce `INVALID_BALL_VALUE` or `INVALID_DROP_SCATTER`. Inline text
 created by **Copy as MSYNC Inline** is subject to the same validation as an
 externally handwritten section.
 
+## ONCE cue validation
+
+`ONCE` is an optional activation modifier using the exact uppercase suffix
+`;ONCE`. It is valid only on `DRILL` and `INLINE` cues:
+
+```text
+00:10.000 DRILL=DRL_WARMUP;ONCE
+00:20.000 INLINE=INL_SINGLE_BALL;ONCE
+```
+
+The modifier runs one complete drill cycle and then leaves the robot idle.
+Malformed suffixes are rejected as malformed cue commands. Applying `;ONCE` to
+another command produces `ONCE_NOT_ALLOWED`. A flavor may share the activation
+timestamp in the normal approved order; later `FLAVOR`, `REST`, or `IDLE` cues
+require a new persistent `DRILL` or `INLINE` activation first.
+
 ## IDLE cue validation
 
 `IDLE` is a non-terminal cue command. It uses the exact uppercase form with no
