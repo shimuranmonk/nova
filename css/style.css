@@ -1551,6 +1551,54 @@ input[type="number"]:disabled {
     min-width: 180px;
 }
 
+.music-source-card {
+    width: 100%;
+    padding: 10px 12px;
+}
+
+.music-source-stack {
+    width: 100%;
+}
+
+.music-source-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) 38px;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.music-source-icon {
+    color: var(--text-light);
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.music-source-use {
+    width: 38px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--primary);
+    cursor: pointer;
+}
+
+.music-source-use:active {
+    transform: scale(0.96);
+}
+
+.music-source-phone-row {
+    display: grid;
+    grid-template-columns: minmax(90px, 0.8fr) minmax(125px, 1.2fr);
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 7px;
+}
+
 /* Music card headings stay emphasized; interactive text stays uniform. */
 .music-control .music-file-btn,
 .music-control .music-playlist-select,
@@ -1563,19 +1611,11 @@ input[type="number"]:disabled {
     display: none;
 }
 
-.quick-music-divider {
-    margin: 7px 0 5px;
-    color: var(--text-light);
-    font-size: 0.62rem;
-    font-weight: 400;
-}
-
 .quick-music-save-option {
     display: flex;
-    width: 100%;
     align-items: center;
     gap: 7px;
-    margin-top: 7px;
+    margin: 0 !important;
     font-size: 0.68rem !important;
     font-weight: 400 !important;
     text-transform: none !important;
@@ -1585,6 +1625,69 @@ input[type="number"]:disabled {
 .quick-music-save-option input {
     flex: 0 0 auto;
     margin: 0;
+}
+
+.statistics-modal {
+    max-width: 360px;
+}
+
+.statistics-modal .modal-close {
+    border: 0;
+    background: transparent;
+}
+
+.statistics-fields {
+    display: grid;
+    gap: 12px;
+    padding-top: 12px;
+}
+
+.statistics-fields label {
+    display: grid;
+    grid-template-columns: 1fr 110px;
+    align-items: center;
+    gap: 12px;
+    color: var(--text);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.statistics-fields input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--text);
+    text-align: right;
+}
+
+.statistics-fields p {
+    margin: 0;
+    color: var(--text-light);
+    font-size: 0.72rem;
+    line-height: 1.4;
+}
+
+.statistics-actions button {
+    flex: 1;
+}
+
+.statistics-cancel {
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
+}
+
+.statistics-save {
+    background: var(--primary);
+    color: white;
+}
+
+.music-phone-btn {
+    gap: 6px;
+    min-height: 32px !important;
 }
 
 
@@ -1640,7 +1743,7 @@ input[type="number"]:disabled {
     width: 100%;
     box-sizing: border-box;
 
-    margin-top: 4px;
+    margin-top: 0;
     padding: 6px 8px;
 
     border: 1px solid var(--border);
