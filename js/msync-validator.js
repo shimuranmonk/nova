@@ -363,6 +363,7 @@ function validateCues(rawCues, parsed, durationMs, issues) {
     const timestampCommands = new Map();
 
     for (const raw of rawCues) {
+        if (active?.once && raw.timestamp !== active.timestamp) active = null;
         const timeMs = timestampToMs(raw.timestamp);
         if (timeMs === null) add(issues, issue('ERROR', 'INVALID_CUE_TIMESTAMP', raw.line,
             'CUES', 'Cue timestamps must use MM:SS.mmm.', { found: raw.timestamp }));
@@ -402,19 +403,26 @@ function validateCues(rawCues, parsed, durationMs, issues) {
         timestampCommands.set(raw.timestamp, [...same, raw.command]);
 
         const cue = { timeMs, type: raw.command, line: raw.line };
+        if (raw.once && !['DRILL', 'INLINE'].includes(raw.command)) add(issues, issue('ERROR',
+            'ONCE_NOT_ALLOWED', raw.line, 'CUES',
+            'ONCE may be used only with DRILL or INLINE cues.'));
         if (raw.command === 'DRILL') {
             if (!Object.hasOwn(parsed.drills, raw.value)) add(issues, issue('ERROR',
                 'UNDEFINED_DRILL', raw.line, 'CUES', `Drill alias ${raw.value} is not defined.`));
-            else { active = { kind: 'DRILL', definition: parsed.drills[raw.value] }; used.drills.add(raw.value); }
+            else { active = { kind: 'DRILL', definition: parsed.drills[raw.value],
+                once: raw.once, timestamp: raw.timestamp }; used.drills.add(raw.value); }
             activationCount++;
             cue.name = raw.value;
+            cue.once = raw.once;
         }
         else if (raw.command === 'INLINE') {
             if (!Object.hasOwn(parsed.inline, raw.value)) add(issues, issue('ERROR',
                 'UNDEFINED_INLINE', raw.line, 'CUES', `Inline drill ${raw.value} is not defined.`));
-            else { active = { kind: 'INLINE', definition: parsed.inline[raw.value] }; used.inline.add(raw.value); }
+            else { active = { kind: 'INLINE', definition: parsed.inline[raw.value],
+                once: raw.once, timestamp: raw.timestamp }; used.inline.add(raw.value); }
             activationCount++;
             cue.name = raw.value;
+            cue.once = raw.once;
         }
         else if (raw.command === 'FLAVOR') {
             if (!active) add(issues, issue('ERROR', 'FLAVOR_WITHOUT_DRILL', raw.line, 'CUES',

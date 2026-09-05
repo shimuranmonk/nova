@@ -84,7 +84,7 @@ function parseCue(text, line, issues) {
         return { timestamp, command: commandText, value: null, line };
     }
 
-    const commandMatch = /^([A-Z]+)=(\S+)$/.exec(commandText);
+    const commandMatch = /^([A-Z]+)=([^;\s]+)(;ONCE)?$/.exec(commandText);
 
     if (!commandMatch) {
         issues.push(error(
@@ -111,6 +111,7 @@ function parseCue(text, line, issues) {
         timestamp,
         command: commandMatch[1],
         value: commandMatch[2],
+        once: Boolean(commandMatch[3]),
         line
     };
 }

@@ -144,9 +144,65 @@ test('cycle completion schedules repeat using SESSION CYCLE_PAUSE', async () => 
         flavor: null
     });
     await adapter.queue;
+    const completionTimer = timers.at(-1);
     doneListener();
+    assert.ok(completionTimer.delay > 1500);
+    assert.equal(timers.at(-1).delay, 1500);
+});
 
-    assert.equal(timers[0].delay, 1500);
+test('missing robot DONE notification falls back to a timed persistent repeat', async () => {
+    const timers = [];
+    const diagnostics = [];
+    const adapter = new MsyncRobotAdapter({
+        send: async () => {},
+        subscribeDone: () => () => {},
+        isConnected: () => true,
+        setTimer: (callback, delay) => { timers.push({ callback, delay }); return timers.length; },
+        clearTimer: () => {},
+        now: () => 0,
+        onDiagnostic: value => diagnostics.push(value)
+    });
+    adapter.configure(parsedFixture());
+    adapter.handleSessionEvent({
+        type: 'ACTIVATE',
+        active: { type: 'DRILL', name: 'DRL_TEST' },
+        flavor: null
+    });
+    await adapter.queue;
+
+    timers.at(-1).callback();
+    assert.equal(diagnostics.at(-1).type, 'ROBOT_DONE_FALLBACK');
+    assert.equal(timers.at(-1).delay, 1500);
+    timers.at(-1).callback();
+    await adapter.queue;
+    assert.equal(diagnostics.filter(value => value.type === 'ROBOT_REPLACE_SENT').length, 2);
+});
+
+test('ONCE completes one cycle and ignores later flavor changes until reactivated', async () => {
+    let doneListener;
+    const timers = [];
+    const diagnostics = [];
+    const adapter = new MsyncRobotAdapter({
+        send: async () => {},
+        subscribeDone: listener => { doneListener = listener; return () => {}; },
+        isConnected: () => true,
+        setTimer: (callback, delay) => { timers.push({ callback, delay }); return timers.length; },
+        clearTimer: () => {},
+        now: () => 0,
+        onDiagnostic: value => diagnostics.push(value)
+    });
+    adapter.configure(parsedFixture());
+    const active = { type: 'INLINE', name: 'INL_TEST', once: true };
+    adapter.handleSessionEvent({ type: 'ACTIVATE', active, flavor: null });
+    await adapter.queue;
+    doneListener();
+    adapter.handleSessionEvent({ type: 'FLAVOR', active, flavor: 'FLV_FAST' });
+    await adapter.queue;
+
+    assert.equal(adapter.execution, null);
+    assert.equal(timers.length, 0);
+    assert.equal(diagnostics.filter(value => value.type === 'ROBOT_REPLACE_SENT').length, 1);
+    assert.equal(diagnostics.at(-1).type, 'ROBOT_ONCE_COMPLETE');
 });
 
 test('DONE acknowledgements after STOP cannot restart ball delivery', async () => {
@@ -167,11 +223,12 @@ test('DONE acknowledgements after STOP cannot restart ball delivery', async () =
         flavor: null
     });
     await adapter.queue;
+    const timerCount = timers.length;
     adapter.handleSessionEvent({ type: 'COMPLETE' });
     await adapter.queue;
     doneListener();
 
-    assert.equal(timers.length, 0);
+    assert.equal(timers.length, timerCount);
 });
 
 test('IDLE cancels the active execution and permits only a STOP packet', async () => {
@@ -193,6 +250,7 @@ test('IDLE cancels the active execution and permits only a STOP packet', async (
         flavor: null
     });
     await adapter.queue;
+    const timerCount = timers.length;
     sent.length = 0;
     adapter.handleSessionEvent({ type: 'IDLE' });
     await adapter.queue;
@@ -200,5 +258,5 @@ test('IDLE cancels the active execution and permits only a STOP packet', async (
 
     assert.equal(adapter.execution, null);
     assert.deepEqual(sent, [ROBOT_STOP_PACKET]);
-    assert.equal(timers.length, 0);
+    assert.equal(timers.length, timerCount);
 });
