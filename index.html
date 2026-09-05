@@ -428,6 +428,23 @@
             >
                 <label>Quick Music</label>
 
+                <select
+                    id="quick-stored-track-select"
+                    class="music-playlist-select"
+                >
+                    <option value="">Select stored audio</option>
+                </select>
+
+                <button
+                    type="button"
+                    id="btn-use-quick-stored-track"
+                    class="music-file-btn"
+                >
+                    Use Stored Audio
+                </button>
+
+                <div class="quick-music-divider">OR PHONE STORAGE</div>
+
                 <label
                     for="input-music"
                     class="music-file-btn"
@@ -442,6 +459,11 @@
                     multiple
                     class="music-file-input"
                 >
+
+                <label class="quick-music-save-option">
+                    <input type="checkbox" id="quick-music-save-library">
+                    <span>Save chosen phone files to Nova Library</span>
+                </label>
 
                 <div
                     id="music-playlist-info"

@@ -147,6 +147,20 @@ test('persists and reloads normalized Track metadata and audio', async () => {
     assert.equal(loaded.audioBlob.size, audioBlob.size);
 });
 
+test('Quick Music library save creates once and reuses the audio hash', async () => {
+    const audioBlob = new Blob(['quick-audio'], { type: 'audio/mpeg' });
+    Object.defineProperty(audioBlob, 'name', { value: 'quick.mp3' });
+    const first = await playlistModule.saveAudioFileToLibrary(
+        audioBlob, 15, 'quick-audio-hash');
+    const second = await playlistModule.saveAudioFileToLibrary(
+        audioBlob, 15, 'quick-audio-hash');
+
+    assert.equal(first.created, true);
+    assert.equal(second.created, false);
+    assert.equal(second.track.id, first.track.id);
+    assert.equal(second.track.metadata.sha256, 'quick-audio-hash');
+});
+
 test('persists MSYNC attachment without losing Track metadata', async () => {
     const tracks = await playlistModule.getAllTracks();
     const original = tracks[0];
@@ -239,7 +253,7 @@ test('permanently deletes a track and removes it from every playlist', async () 
 
 test('removing MSYNC persists without deleting Track audio or hash', async () => {
     const tracks = await playlistModule.getAllTracks();
-    const track = tracks.find(item => item.id !== 'track-two');
+    const track = tracks.find(item => item.metadata?.sha256 === 'audio-hash');
 
     await playlistModule.saveTrack(
         playlistModule.removeMsyncFromTrack(track, 700)

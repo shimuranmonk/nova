@@ -53,9 +53,12 @@ To use Music mode:
    and add audio files. **Stored Tracks** lists saved audio and provides the
    permanent-delete control.
 2. Select **Music**.
-3. In the left panel, choose a saved playlist and tap **Use Saved Playlist**;
-   or use **Choose Music** in the right panel for temporary audio that is not
-   saved to the database.
+3. In the left panel, choose a saved playlist and tap **Use Saved Playlist**.
+   In **Quick Music**, choose one existing **Stored Audio** track or select one
+   or more files from phone storage. Phone files remain temporary unless
+   **Save chosen phone files to Nova Library** is checked. Saving uses the audio
+   hash to reuse an existing Track instead of creating a duplicate; it does not
+   automatically add the Track to a playlist.
 4. Select a drill. Music and the robot begin after the countdown.
 5. The robot stops automatically when the final track ends.
 
