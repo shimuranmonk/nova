@@ -539,11 +539,13 @@ Rules:
 
 ## CUES command grammar
 
-`[CUES]` supports exactly six file commands:
+`[CUES]` supports these file commands and activation forms:
 
 ```text
 DRILL=DRL_NAME
+DRILL=DRL_NAME;ONCE
 INLINE=INL_NAME
+INLINE=INL_NAME;ONCE
 FLAVOR=FLV_NAME
 FLAVOR=NONE
 REST=seconds
@@ -558,7 +560,12 @@ contain at least one `DRILL` or `INLINE` activation.
 
 `DRILL` resolves a defined `DRL_` alias and `INLINE` resolves a defined `INL_`
 name. Either activates a fresh unflavored execution copy and clears the prior
-drill and flavor.
+drill and flavor. By default, both referenced and inline drills repeat complete
+cycles until replaced, rested, idled, or stopped. The optional uppercase
+`;ONCE` modifier runs exactly one complete cycle and then leaves the robot idle
+until a later `DRILL` or `INLINE` cue. A one-ball definition with `;ONCE`
+therefore fires exactly one ball. `;ONCE` is playback control and is not a
+flavor parameter.
 
 `FLAVOR` resolves a defined `FLV_` name and requires an active drill from an
 earlier cue or an earlier line at the same timestamp. It rebuilds from the
@@ -705,7 +712,10 @@ produce warnings.
 A `DRILL` or `INLINE` cue selects the active drill. The active drill repeats
 until another `DRILL`, another `INLINE`, `IDLE`, or `STOP` is reached. `FLV_REPS`
 controls repetitions within each drill cycle; it does not limit the number of
-cycles.
+cycles. Adding `;ONCE` to the activation suppresses repetition after that one
+cycle. Nova normally uses the robot's completion notification to begin the
+configured cycle pause; if that notification is absent, a duration-based safety
+fallback keeps persistent playback moving without affecting `;ONCE` cues.
 
 ## REST command
 
