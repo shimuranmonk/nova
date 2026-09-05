@@ -60,7 +60,7 @@ test('Test Mode intercepts every command before operational routing', () => {
     assert.deepEqual(calls, []);
 });
 
-test('blocks all MSYNC commands until the Phase 7 route exists', () => {
+test('blocks MSYNC commands when no MSYNC route exists', () => {
     const router = createVoiceCommandRouter({
         getMode: () => 'msync',
         startStandard: () => executed(COMMANDS.START),
@@ -72,6 +72,28 @@ test('blocks all MSYNC commands until the Phase 7 route exists', () => {
         assert.equal(outcome.status, COMMAND_RESULTS.BLOCKED);
         assert.match(outcome.reason, /MSYNC voice control/);
     }
+});
+
+test('routes MSYNC commands only to the supplied MSYNC adapter', async () => {
+    const calls = [];
+    const router = createVoiceCommandRouter({
+        getMode: () => 'msync',
+        executeMsync: async (command) => {
+            calls.push(command);
+            return executed(command);
+        },
+        startStandard: () => calls.push('standard-start'),
+        executeStandard: () => calls.push('standard-command')
+    });
+
+    for (const command of Object.values(COMMANDS)) {
+        assert.equal(
+            (await router.route(command)).status,
+            COMMAND_RESULTS.EXECUTED
+        );
+    }
+
+    assert.deepEqual(calls, Object.values(COMMANDS));
 });
 
 test('rejects vocabulary outside the canonical command set', () => {

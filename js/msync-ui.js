@@ -23,6 +23,10 @@ import {
     sendPacket
 } from './bluetooth.js';
 import { MsyncRobotAdapter } from './msync-robot.js';
+import {
+    SESSION_STATES
+} from './command-controller.js';
+import { createMsyncVoiceController } from './msync-voice-controller.js';
 
 let tracks = [];
 let selectedTrack = null;
@@ -31,6 +35,10 @@ let sessionController = null;
 let simulationEvents = [];
 let robotAdapter = null;
 let liveMode = false;
+let voiceStartReady = false;
+let armedVoiceTarget = null;
+let voiceStartGeneration = 0;
+let voiceStartPending = false;
 
 function element(id) {
     return document.getElementById(id);
@@ -109,7 +117,10 @@ function updateSimulationState(state, reason = null) {
     const liveStart = element('msync-live-start');
     const pause = element('msync-sim-pause');
     const stop = element('msync-sim-stop');
-    label.textContent = `${state}${reason ? ` — ${reason}` : ''} — ${liveMode ? 'LIVE ROBOT' : 'No robot commands.'}`;
+    const armedLabel = armedVoiceTarget
+        ? ` — ARMED ${armedVoiceTarget.live ? 'LIVE ROBOT' : 'SIMULATION'}`
+        : '';
+    label.textContent = `${state}${reason ? ` — ${reason}` : ''}${armedLabel} — ${liveMode ? 'LIVE ROBOT' : 'No robot commands.'}`;
     start.disabled = ![
         MSYNC_SESSION_STATE.READY,
         MSYNC_SESSION_STATE.COMPLETED,
@@ -126,6 +137,34 @@ function updateSimulationState(state, reason = null) {
         MSYNC_SESSION_STATE.PLAYING,
         MSYNC_SESSION_STATE.PAUSED
     ].includes(state);
+    start.textContent = voiceStartReady
+        ? armedVoiceTarget?.live === false
+            ? 'Simulation Armed'
+            : 'Arm Simulation'
+        : 'Start Simulation';
+    liveStart.textContent = voiceStartReady
+        ? armedVoiceTarget?.live === true
+            ? 'Live Robot Armed'
+            : 'Arm Live Robot'
+        : 'Start Live Robot';
+}
+
+function clearMsyncVoiceArm() {
+    voiceStartGeneration++;
+    voiceStartPending = false;
+    armedVoiceTarget = null;
+}
+
+export function setMsyncVoiceReady(enabled) {
+    voiceStartReady = enabled === true;
+
+    if (!voiceStartReady) {
+        clearMsyncVoiceArm();
+    }
+
+    updateSimulationState(
+        sessionController?.state || MSYNC_SESSION_STATE.READY
+    );
 }
 
 function eventPosition(ms) {
@@ -337,6 +376,7 @@ async function removeAttachment() {
 export function initializeMsyncUI() {
     const select = element('msync-track-select');
     select.addEventListener('change', () => {
+        clearMsyncVoiceArm();
         destroySimulation();
         selectedTrack = tracks.find(track => track.id === select.value) || null;
         element('msync-file-input').value = '';
@@ -348,8 +388,14 @@ export function initializeMsyncUI() {
     element('msync-export').addEventListener('click', exportAttachment);
     element('msync-remove').addEventListener('click', removeAttachment);
     element('msync-attach-confirm').addEventListener('click', () => attachPending(true));
-    element('msync-sim-start').addEventListener('click', () => startMsyncSession(false));
-    element('msync-live-start').addEventListener('click', () => startMsyncSession(true));
+    element('msync-sim-start').addEventListener('click', () =>
+        voiceStartReady
+            ? armMsyncVoiceTarget(false)
+            : startMsyncSession(false));
+    element('msync-live-start').addEventListener('click', () =>
+        voiceStartReady
+            ? armMsyncVoiceTarget(true)
+            : startMsyncSession(true));
     element('msync-sim-pause').addEventListener('click', toggleSimulationPause);
     element('msync-sim-stop').addEventListener('click', () =>
         sessionController?.stop('MANUAL_STOP'));
@@ -384,7 +430,10 @@ export function setMsyncModeActive(active) {
     element('drill-selection-area')?.classList.toggle('hidden', active);
     element('grp-difficulty')?.classList.toggle('hidden', active);
     element('ui-pause')?.classList.toggle('hidden', active);
-    if (!active) destroySimulation();
+    if (!active) {
+        clearMsyncVoiceArm();
+        destroySimulation();
+    }
     if (active) refreshMsyncTracks().catch(error =>
         console.error('Unable to refresh MSYNC tracks:', error));
 }
@@ -392,7 +441,7 @@ export function setMsyncModeActive(active) {
 async function acceptNewWarnings(result) {
     if (!result.newWarnings?.length) return true;
     if (!window.confirm(
-        `${result.newWarnings.length} new MSYNC warning${result.newWarnings.length === 1 ? '' : 's'} found. Start simulation anyway?`
+        `${result.newWarnings.length} new MSYNC warning${result.newWarnings.length === 1 ? '' : 's'} found. Continue with this session?`
     )) return false;
     const now = Date.now();
     const attachment = selectedTrack.metadata.msync;
@@ -420,39 +469,117 @@ async function acceptNewWarnings(result) {
     return true;
 }
 
-async function startMsyncSession(useLiveRobot) {
-    if (!selectedTrack?.metadata?.msync) return;
+async function validateMsyncSessionRequest(
+    useLiveRobot,
+    { confirmLive = false } = {}
+) {
+    if (!selectedTrack?.metadata?.msync) {
+        showToast('Select a track with MSYNC attached');
+        return null;
+    }
+
     if (useLiveRobot && !bleState.isConnected) {
         showToast('Connect the robot before Live mode');
-        return;
+        return null;
     }
-    try {
-        showToast('Revalidating MSYNC...');
-        const result = await revalidateMsyncAttachment(selectedTrack, {
-            builtInDrills: currentDrills,
-            customDrills: userCustomDrills,
-            drillData: currentDrills
-        });
-        pendingValidation = result;
-        renderValidation(result);
-        if (!result.valid) {
-            updateSimulationState(MSYNC_SESSION_STATE.ERROR, 'Revalidation failed');
-            showToast('Simulation blocked by MSYNC errors');
-            return;
+
+    showToast('Revalidating MSYNC...');
+    const result = await revalidateMsyncAttachment(selectedTrack, {
+        builtInDrills: currentDrills,
+        customDrills: userCustomDrills,
+        drillData: currentDrills
+    });
+    pendingValidation = result;
+    renderValidation(result);
+
+    if (!result.valid) {
+        updateSimulationState(
+            MSYNC_SESSION_STATE.ERROR,
+            'Revalidation failed'
+        );
+        showToast('Session blocked by MSYNC errors');
+        return null;
+    }
+
+    if (!await acceptNewWarnings(result)) {
+        return null;
+    }
+
+    const robotLead = Number(element('msync-robot-lead').value);
+    result.parsed = {
+        ...result.parsed,
+        session: {
+            ...result.parsed.session,
+            robotLead: Math.min(5, Math.max(0,
+                Number.isFinite(robotLead) ? robotLead : 1.3))
         }
-        if (!await acceptNewWarnings(result)) return;
-        const robotLead = Number(element('msync-robot-lead').value);
-        result.parsed = {
-            ...result.parsed,
-            session: {
-                ...result.parsed.session,
-                robotLead: Math.min(5, Math.max(0,
-                    Number.isFinite(robotLead) ? robotLead : 1.3))
-            }
+    };
+
+    if (useLiveRobot && confirmLive && !window.confirm(
+        'Arm LIVE MSYNC for voice start?\n\nThe connected robot will begin firing balls when NOVA START is recognized. Keep the table clear and remain ready to press Stop.'
+    )) {
+        return null;
+    }
+
+    return result;
+}
+
+async function armMsyncVoiceTarget(useLiveRobot) {
+    try {
+        const trackId = selectedTrack?.id || null;
+        const result = await validateMsyncSessionRequest(
+            useLiveRobot,
+            { confirmLive: useLiveRobot }
+        );
+
+        if (!result || !voiceStartReady || selectedTrack?.id !== trackId) {
+            return false;
+        }
+
+        armedVoiceTarget = {
+            live: useLiveRobot,
+            trackId
         };
-        if (useLiveRobot && !window.confirm(
+        updateSimulationState(MSYNC_SESSION_STATE.READY);
+        showToast(
+            useLiveRobot
+                ? 'Live MSYNC armed for NOVA START'
+                : 'MSYNC simulation armed for NOVA START'
+        );
+        return true;
+    }
+    catch (error) {
+        console.error('Unable to arm MSYNC:', error);
+        updateSimulationState(MSYNC_SESSION_STATE.ERROR, error.message);
+        showToast('Unable to arm MSYNC');
+        return false;
+    }
+}
+
+async function startMsyncSession(
+    useLiveRobot,
+    {
+        liveConfirmed = false,
+        canStart = () => true
+    } = {}
+) {
+    try {
+        const result = await validateMsyncSessionRequest(useLiveRobot);
+
+        if (!result || !canStart()) {
+            return false;
+        }
+
+        if (useLiveRobot && !liveConfirmed && !window.confirm(
             'Start LIVE MSYNC?\n\nThe connected robot will begin firing balls at the scheduled cues. Keep the table clear and remain ready to press Stop.'
-        )) return;
+        )) {
+            return false;
+        }
+
+        if (!canStart()) {
+            return false;
+        }
+
         destroySimulation();
         liveMode = useLiveRobot;
         simulationEvents = [];
@@ -477,11 +604,13 @@ async function startMsyncSession(useLiveRobot) {
             onRobotEvent: value => robotAdapter?.handleSessionEvent(value)
         });
         await sessionController.start(result.parsed);
+        return true;
     }
     catch (error) {
         console.error('Unable to start MSYNC simulation:', error);
         updateSimulationState(MSYNC_SESSION_STATE.ERROR, error.message);
         showToast('Unable to start simulation');
+        return false;
     }
 }
 
@@ -491,4 +620,71 @@ async function toggleSimulationPause() {
         await sessionController.resume();
     }
     else sessionController.pause();
+}
+
+export function getMsyncVoiceState() {
+    if (voiceStartPending) {
+        return SESSION_STATES.COUNTDOWN;
+    }
+
+    const state = sessionController?.state;
+
+    if (state === MSYNC_SESSION_STATE.COUNTDOWN) {
+        return SESSION_STATES.COUNTDOWN;
+    }
+    if (state === MSYNC_SESSION_STATE.PLAYING) {
+        return SESSION_STATES.RUNNING;
+    }
+    if (state === MSYNC_SESSION_STATE.PAUSED) {
+        return SESSION_STATES.PAUSED;
+    }
+    if (
+        voiceStartReady &&
+        armedVoiceTarget &&
+        armedVoiceTarget.trackId === selectedTrack?.id
+    ) {
+        return SESSION_STATES.ARMED;
+    }
+
+    return SESSION_STATES.IDLE;
+}
+
+export async function executeMsyncVoiceCommand(command) {
+    const controller = createMsyncVoiceController({
+        getState: getMsyncVoiceState,
+        getTarget: () => armedVoiceTarget
+            ? { ...armedVoiceTarget }
+            : null,
+        start: async (target) => {
+            const requestGeneration = ++voiceStartGeneration;
+            voiceStartPending = true;
+
+            const started = await startMsyncSession(
+                target.live,
+                {
+                    liveConfirmed: target.live,
+                    canStart: () =>
+                        voiceStartPending &&
+                        voiceStartGeneration === requestGeneration &&
+                        voiceStartReady &&
+                        armedVoiceTarget?.trackId === target.trackId
+                }
+            );
+
+            if (voiceStartGeneration === requestGeneration) {
+                voiceStartPending = false;
+            }
+
+            return started;
+        },
+        stop: () => {
+            voiceStartGeneration++;
+            voiceStartPending = false;
+            sessionController?.stop('VOICE_STOP');
+        },
+        pause: () => sessionController?.pause(),
+        resume: () => sessionController?.resume()
+    });
+
+    return controller.execute(command);
 }

@@ -113,7 +113,9 @@ import {
 
 import {
     initializeMsyncUI,
-    setMsyncModeActive
+    setMsyncModeActive,
+    setMsyncVoiceReady,
+    executeMsyncVoiceCommand
 } from './msync-ui.js';
 
 const drillArmingController = createDrillArmingController({
@@ -186,6 +188,8 @@ const voiceTestMode = createVoiceTestMode({
     onUpdate: updateVoiceTestUI
 });
 
+let voiceOutcomeGeneration = 0;
+
 const voiceRecognitionEngine = createVoiceRecognitionEngine({
     scope: window,
     onStatus: (status) => {
@@ -200,6 +204,7 @@ const voiceRecognitionEngine = createVoiceRecognitionEngine({
         ) {
             voiceTestMode.setActive(false);
             drillArmingController.setEnabled(false);
+            setMsyncVoiceReady(false);
             updateVoiceReadyUI();
         }
     },
@@ -219,12 +224,24 @@ const voiceRecognitionEngine = createVoiceRecognitionEngine({
             );
         }
     },
-    onCommand: ({ phrase, command }) => {
+    onCommand: async ({ phrase, command }) => {
         if (voiceTestMode.isActive()) {
             return;
         }
 
-        const outcome = voiceCommandRouter.route(command);
+        if (command === COMMANDS.STOP) {
+            voiceOutcomeGeneration++;
+        }
+
+        const outcomeGeneration = voiceOutcomeGeneration;
+        const outcome = await voiceCommandRouter.route(command);
+
+        if (
+            command !== COMMANDS.STOP &&
+            outcomeGeneration !== voiceOutcomeGeneration
+        ) {
+            return;
+        }
         const reason = outcome.reason
             ? ` — ${outcome.reason}`
             : '';
@@ -310,17 +327,20 @@ async function setVoiceStartReady(enabled) {
         voiceTestMode.setActive(false);
         voiceRecognitionEngine.stop();
         drillArmingController.setEnabled(false);
+        setMsyncVoiceReady(false);
         updateVoiceReadyUI();
         return true;
     }
 
     drillArmingController.setEnabled(true);
+    setMsyncVoiceReady(true);
     updateVoiceReadyUI();
 
     const started = await voiceRecognitionEngine.start();
 
     if (!started && !voiceRecognitionEngine.isEnabled()) {
         drillArmingController.setEnabled(false);
+        setMsyncVoiceReady(false);
         updateVoiceReadyUI();
     }
 
@@ -357,7 +377,8 @@ const voiceCommandRouter = createVoiceCommandRouter({
     getStandardState: getStandardCommandState,
     startStandard: startArmedStandardDrill,
     executeStandard: (command) =>
-        standardCommandController.execute(command)
+        standardCommandController.execute(command),
+    executeMsync: executeMsyncVoiceCommand
 });
 
 function markDrillRunning(key) {

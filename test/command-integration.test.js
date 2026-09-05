@@ -63,7 +63,7 @@ test('voice recognition routes standard commands while preserving Test Mode', as
 
     assert.match(main, /createVoiceRecognitionEngine\s*\(\s*\{/);
     assert.match(main, /createVoiceCommandRouter\s*\(\s*\{/);
-    assert.match(main, /onCommand:\s*\(\{\s*phrase,\s*command\s*\}\)\s*=>/);
+    assert.match(main, /onCommand:\s*async\s*\(\{\s*phrase,\s*command\s*\}\)\s*=>/);
     assert.match(main, /voiceCommandRouter\.route\(command\)/);
     assert.match(
         main,
@@ -74,6 +74,7 @@ test('voice recognition routes standard commands while preserving Test Mode', as
         main,
         /executeStandard:[\s\S]{0,100}standardCommandController\.execute\(command\)/
     );
+    assert.match(main, /executeMsync:\s*executeMsyncVoiceCommand/);
 });
 
 test('armed START keeps all standard settings live in the existing runner', async () => {
