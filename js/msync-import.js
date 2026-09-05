@@ -65,10 +65,11 @@ function importFailure(code, message) {
 
 export async function validateExternalMsyncFile(file, context = {}) {
     if (!file || typeof file.text !== 'function') {
-        return importFailure('UNREADABLE_FILE', 'Select a readable .msync file.');
+        return importFailure('UNREADABLE_FILE', 'Select a readable MSYNC .ini file.');
     }
-    if (file.name && !file.name.toLowerCase().endsWith('.msync')) {
-        return importFailure('INVALID_FILE_EXTENSION', 'The selected file must use .msync.');
+    if (file.name && !/\.(?:ini|msync)$/i.test(file.name)) {
+        return importFailure('INVALID_FILE_EXTENSION',
+            'The selected file must use .ini. Legacy .msync files are also accepted.');
     }
     let sourceText;
     try {
@@ -102,7 +103,7 @@ export async function validateExternalMsyncFile(file, context = {}) {
     });
     return {
         ...result,
-        sourceFilename: file.name || 'import.msync',
+        sourceFilename: file.name || 'import.ini',
         sourceText,
         sourceSha256: await sha256Text(sourceText),
         preparedTrack: preparedTrack?.track || null,

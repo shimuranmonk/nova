@@ -2,7 +2,7 @@
 
 Status: approved and frozen for MSYNC v1.
 
-The canonical benchmark file is `MSYNC_V1_EXAMPLE.msync`. Future changes to
+The canonical benchmark file is `MSYNC_V1_EXAMPLE.ini`. Future changes to
 this contract require an explicit format review and must preserve v1 files or
 introduce a new format version.
 
@@ -648,8 +648,10 @@ stored MSYNC data.
 ## Authoring boundary
 
 MSYNC files are authored outside Nova and imported from the phone's file
-storage. Nova v1 consumes, validates, attaches, and executes `.msync` files; it
-does not create or edit them.
+storage. Nova consumes, validates, attaches, and executes MSYNC `.ini` files.
+It also accepts legacy `.msync` filenames so existing files and attachments
+remain usable. New files and Nova exports use `.ini`. Nova does not create or
+edit their contents.
 
 ## Flavor parameter names
 

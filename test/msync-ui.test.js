@@ -21,7 +21,10 @@ globalThis.Audio = class {
     pause() {}
 };
 
-const { formatMsyncValidationReport } = await import('../js/msync-ui.js');
+const {
+    formatMsyncValidationReport,
+    msyncExportFilename
+} = await import('../js/msync-ui.js');
 
 test('formats a complete copyable validation report', () => {
     const report = formatMsyncValidationReport({
@@ -86,4 +89,10 @@ test('uses regular text weight for Music controls while card labels remain headi
     const css = await readFile(new URL('../css/style.css', import.meta.url), 'utf8');
     assert.match(css, /\.music-control \.music-file-btn,[\s\S]*?font-weight:\s*400;/);
     assert.match(css, /\.control-pill label[\s\S]*?font-weight:\s*700;/);
+});
+
+test('exports new and legacy MSYNC attachments with the official .ini extension', () => {
+    assert.equal(msyncExportFilename({ sourceFilename: 'training.ini' }), 'training.ini');
+    assert.equal(msyncExportFilename({ sourceFilename: 'training.msync' }), 'training.ini');
+    assert.equal(msyncExportFilename({}, { filename: 'song.mp3' }), 'song.mp3.ini');
 });

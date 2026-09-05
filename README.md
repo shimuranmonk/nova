@@ -72,7 +72,7 @@ During the session, Nova displays:
 
 ### MSYNC
 
-MSYNC runs externally authored `.msync` cue files against audio saved through
+MSYNC runs externally authored `.ini` cue files against audio saved through
 Playlist Manager. Music mode ignores MSYNC attachments; synchronization is
 used only in the MSYNC tab.
 
@@ -80,8 +80,8 @@ To use MSYNC mode:
 
 1. Save the intended audio in **Manage Playlists**, then select **MSYNC**.
 2. Choose the stored track. Use **Copy Audio Hash** when authoring the external
-   `.msync` file.
-3. Tap **Choose .msync File** and select the matching file. Validation errors
+   `.ini` file.
+3. Tap **Choose MSYNC .ini File** and select the matching file. Validation errors
    must be corrected; warnings require explicit acceptance.
 4. Adjust **Robot Lead** if needed. The default `1.300` seconds compensates for
    measured command-to-ball launch delay without changing the music timeline.
@@ -92,7 +92,7 @@ To use MSYNC mode:
 The external file remains authoritative. Editing Robot Lead in the tab changes
 only the current run and does not rewrite the attached file. See
 [`MSYNC_FORMAT_V1.md`](MSYNC_FORMAT_V1.md) for the format and
-[`MSYNC_V1_EXAMPLE.msync`](MSYNC_V1_EXAMPLE.msync) for a working example.
+[`MSYNC_V1_EXAMPLE.ini`](MSYNC_V1_EXAMPLE.ini) for a working example.
 Validation behavior is documented in
 [`MSYNC_VALIDATION_V1.md`](MSYNC_VALIDATION_V1.md).
 
