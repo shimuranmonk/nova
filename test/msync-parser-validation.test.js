@@ -82,7 +82,7 @@ test('accepts and bounds SESSION ROBOT_LEAD', () => {
 
 test('accepts the canonical MSYNC v1 benchmark', async () => {
     const benchmark = await readFile(
-        new URL('../MSYNC_V1_EXAMPLE.msync', import.meta.url),
+        new URL('../MSYNC_V1_EXAMPLE.ini', import.meta.url),
         'utf8'
     );
     const result = validateMsyncSource(benchmark, {
@@ -186,7 +186,7 @@ test('reports unused definitions as warnings requiring explicit acceptance', asy
 FLV_BPM=60
 
 [CUES]`);
-    const file = { name: 'test.msync', text: async () => text };
+    const file = { name: 'test.ini', text: async () => text };
     const result = await validateExternalMsyncFile(file, { track: track() });
 
     assert.equal(result.valid, true);
@@ -232,16 +232,22 @@ test('unreadable and wrongly named external files fail safely', async () => {
     assert.equal(wrong.errors[0].code, 'INVALID_FILE_EXTENSION');
 
     const unreadable = await validateExternalMsyncFile({
-        name: 'test.msync',
+        name: 'test.ini',
         text: async () => { throw new Error('read failure'); }
     });
     assert.equal(unreadable.errors[0].code, 'FILE_READ_FAILED');
     assert.equal(unreadable.parsed, null);
+
+    const legacy = await validateExternalMsyncFile({
+        name: 'legacy.msync',
+        text: async () => source()
+    }, { track: track() });
+    assert.equal(legacy.valid, true);
 });
 
 test('external validation requires a selected Track and resolvable references', async () => {
     const noTrack = await validateExternalMsyncFile({
-        name: 'test.msync',
+        name: 'test.ini',
         text: async () => source()
     });
     assert.equal(noTrack.errors[0].code, 'TRACK_REQUIRED');
@@ -251,7 +257,7 @@ test('external validation requires a selected Track and resolvable references', 
         '[DRILLS]\nDRL_TEST=BUILTIN:missing;LEVEL=1\n\n[CUES]\n00:00.000 DRILL=DRL_TEST'
     );
     const unresolved = await validateExternalMsyncFile({
-        name: 'test.msync',
+        name: 'test.ini',
         text: async () => referenced
     }, { track: track() });
     assert.ok(unresolved.errors.some(value => value.code === 'MISSING_DRILL'));
@@ -285,7 +291,7 @@ test('accepts IDLE without a value and requires a new activation afterward', () 
 test('builds one complete Track update without mutating the original', async () => {
     const original = track({ metadata: { sha256: HASH, tag: 'preserve' } });
     const result = await validateExternalMsyncFile({
-        name: 'test.msync',
+        name: 'test.ini',
         text: async () => source()
     }, { track: original });
     const updated = createMsyncTrackUpdate(result, { now: 1234 });

@@ -2,6 +2,12 @@
 
 Status: approved and frozen for MSYNC v1.
 
+The official external filename extension is `.ini`, allowing Android text
+editors to open MSYNC sources normally. Nova-generated exports use `.ini`.
+Legacy `.msync` files remain accepted for backward compatibility; other
+extensions produce `INVALID_FILE_EXTENSION`. In every case, the contents must
+still satisfy the complete MSYNC grammar and validation contract.
+
 ## Validation result levels
 
 MSYNC v1 uses two validation result levels:
