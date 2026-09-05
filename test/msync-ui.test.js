@@ -82,9 +82,17 @@ test('ships every required MSYNC import control in the page', async () => {
     assert.match(html, /id="quick-stored-track-select"/);
     assert.match(html, /id="btn-use-quick-stored-track"/);
     assert.match(html, /id="quick-music-save-library"/);
+    assert.match(html, /class="control-pill hidden music-control music-source-card"/);
+    assert.match(html, /class="music-source-use" aria-label="Use playlist"/);
+    assert.match(html, /class="music-source-use" aria-label="Use stored track"/);
     assert.match(html, /id="btn-copy-msync-inline"/);
     assert.match(html, /<title>Nova Drill Control PLUS<\/title>/);
     assert.match(html, /<h1>Nova Drill Control PLUS<\/h1>/);
+    assert.match(html, /Version 3\.0\.0/);
+    assert.match(html, /onclick="window\.openStatisticsDialog\(\)"/);
+    assert.match(html, /id="statistics-modal"/);
+    assert.match(html, /id="statistics-balls"/);
+    assert.match(html, /id="statistics-drills"/);
     assert.match(html, /href="https:\/\/github\.com\/shimuranmonk\/nova"/);
 });
 

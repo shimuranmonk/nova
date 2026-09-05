@@ -73,6 +73,10 @@ During the session, Nova displays:
 - Remaining playlist time
 - Total playlist duration
 
+Use **Update Statistics** in the menu to set the cumulative Balls and Drills
+totals from which future activity will continue counting. Values must be whole,
+non-negative numbers and remain stored on the device.
+
 ### MSYNC
 
 MSYNC runs externally authored `.ini` cue files against audio saved through
