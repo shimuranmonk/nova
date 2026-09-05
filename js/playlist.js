@@ -764,6 +764,33 @@ export async function findTrackByHash(hash) {
     ) || null;
 }
 
+export async function saveAudioFileToLibrary(file, duration, sha256) {
+    if (!file || !sha256) throw new Error('Audio file and SHA-256 are required');
+    let track = await findTrackByHash(sha256);
+    if (!track) {
+        const tracks = await getAllTracks();
+        track = tracks.find(item =>
+            !item.metadata?.sha256 &&
+            item.filename === file.name &&
+            Number(item.size) === Number(file.size) &&
+            (!item.type || !file.type || item.type === file.type) &&
+            Math.abs((Number(item.duration) || 0) - duration) < 0.5
+        ) || null;
+    }
+    if (track) {
+        if (!track.metadata?.sha256) {
+            track = await saveTrack({
+                ...track,
+                metadata: { ...track.metadata, sha256 }
+            });
+        }
+        return { track, created: false };
+    }
+    track = createTrackRecord(file, duration);
+    track.metadata.sha256 = sha256;
+    return { track: await saveTrack(track), created: true };
+}
+
 /*
  * move one track inside a playlist.
  *

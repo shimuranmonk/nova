@@ -27,7 +27,7 @@ function revokeCurrentUrl() {
 }
 
 
-function getAudioDuration(file) {
+export function getAudioDuration(file) {
     return new Promise((resolve) => {
         const tempAudio = new Audio();
         const url = URL.createObjectURL(file);

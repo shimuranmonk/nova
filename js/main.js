@@ -56,13 +56,16 @@ import {
 
 import {
     loadPlaylist,
-    loadStoredPlaylist
+    loadStoredPlaylist,
+    getAudioDuration
 } from './music.js';
 
 
 import {
     getAllPlaylists,
-    getPlaylistTracks
+    getPlaylistTracks,
+    getAllTracks,
+    saveAudioFileToLibrary
 } from './playlist.js';
 
 
@@ -115,6 +118,43 @@ document.addEventListener(
 
 
 // --- Event Listeners Setup ---
+
+async function hashQuickMusicFile(file) {
+    const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+    return Array.from(new Uint8Array(digest))
+        .map(byte => byte.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+async function saveQuickMusicFiles(files) {
+    let saved = 0;
+    let reused = 0;
+    for (const file of files) {
+        const [duration, hash] = await Promise.all([
+            getAudioDuration(file),
+            hashQuickMusicFile(file)
+        ]);
+        const result = await saveAudioFileToLibrary(file, duration, hash);
+        if (result.created) saved++;
+        else reused++;
+    }
+    document.dispatchEvent(new CustomEvent('stored-tracks-changed'));
+    return { saved, reused };
+}
+
+async function refreshQuickStoredTracks(preferredId = null) {
+    const select = document.getElementById('quick-stored-track-select');
+    if (!select) return;
+    const currentId = preferredId || select.value;
+    const tracks = await getAllTracks();
+    tracks.sort((a, b) => String(a.displayName || a.filename || '')
+        .localeCompare(String(b.displayName || b.filename || '')));
+    select.replaceChildren(new Option('Select stored audio', ''));
+    for (const track of tracks) {
+        select.append(new Option(track.displayName || track.filename || 'Unknown Track', track.id));
+    }
+    if (tracks.some(track => track.id === currentId)) select.value = currentId;
+}
 
 function setupEventListeners() {
 
@@ -182,6 +222,56 @@ function setupEventListeners() {
             'music-playlist-info'
         );
 
+    const quickStoredTrackSelect =
+        document.getElementById('quick-stored-track-select');
+
+    const btnUseQuickStoredTrack =
+        document.getElementById('btn-use-quick-stored-track');
+
+    const quickMusicSaveLibrary =
+        document.getElementById('quick-music-save-library');
+
+    refreshQuickStoredTracks().catch(error =>
+        console.error('Unable to load stored Quick Music tracks:', error));
+
+    document.addEventListener('stored-tracks-changed', () => {
+        refreshQuickStoredTracks().catch(error =>
+            console.error('Unable to refresh stored Quick Music tracks:', error));
+    });
+
+    if (btnUseQuickStoredTrack) {
+        btnUseQuickStoredTrack.onclick = async () => {
+            const trackId = quickStoredTrackSelect?.value;
+            if (!trackId) {
+                showToast('Select stored audio');
+                return;
+            }
+            try {
+                const track = (await getAllTracks()).find(item => item.id === trackId);
+                if (!track?.audioBlob) {
+                    showToast('Stored audio not found');
+                    await refreshQuickStoredTracks();
+                    return;
+                }
+                const info = loadStoredPlaylist([track]);
+                if (playlistInfo) {
+                    playlistInfo.textContent =
+                        `${track.displayName || track.filename} - ` +
+                        `${formatPlaylistTime(info.totalDuration)}`;
+                }
+                const savedPlaylistSelect =
+                    document.getElementById('saved-playlist-select');
+                if (savedPlaylistSelect) savedPlaylistSelect.value = '';
+                if (inputMusic) inputMusic.value = '';
+                showToast('Stored audio loaded');
+            }
+            catch (error) {
+                console.error('Unable to load stored Quick Music:', error);
+                showToast('Unable to load stored audio');
+            }
+        };
+    }
+
 
     if (inputMusic) {
         inputMusic.onchange = async (e) => {
@@ -214,6 +304,19 @@ function setupEventListeners() {
                 const info =
                     await loadPlaylist(files);
 
+                if (quickMusicSaveLibrary?.checked) {
+                    try {
+                        const result = await saveQuickMusicFiles(Array.from(files));
+                        showToast(result.saved
+                            ? `${result.saved} track${result.saved === 1 ? '' : 's'} saved to Nova Library`
+                            : 'Selected tracks already exist in Nova Library');
+                    }
+                    catch (error) {
+                        console.error('Unable to save Quick Music:', error);
+                        showToast('Music loaded, but could not be saved');
+                    }
+                }
+
 
                 if (playlistInfo) {
                     playlistInfo.textContent =
@@ -234,6 +337,10 @@ function setupEventListeners() {
 
                 if (savedPlaylistSelect) {
                     savedPlaylistSelect.value = '';
+                }
+
+                if (quickStoredTrackSelect) {
+                    quickStoredTrackSelect.value = '';
                 }
 
             }
