@@ -166,6 +166,14 @@
 
         <div
             class="theme-item"
+            onclick="window.openStatisticsDialog()"
+        >
+            Update Statistics
+        </div>
+
+
+        <div
+            class="theme-item"
             onclick="resetStats()"
         >
             Reset Statistics
@@ -350,79 +358,47 @@
 
 
             <div
-                class="control-pill hidden music-control"
+                class="control-pill hidden music-control music-source-card"
                 id="ui-music"
             >
+                <label>Music Source</label>
 
-                <label>
-                    Music Playlist
-                </label>
+                <div class="music-source-row">
+                    <span class="music-source-icon" aria-hidden="true">☷</span>
+                    <select id="saved-playlist-select" class="music-playlist-select"
+                        aria-label="Saved playlist">
+                        <option value="">Saved playlist</option>
+                    </select>
+                    <button type="button" id="btn-use-saved-playlist"
+                        class="music-source-use" aria-label="Use playlist"
+                        title="Use playlist">▶</button>
+                </div>
 
+                <div id="ui-quick-music" class="music-source-stack">
+                    <div class="music-source-row">
+                        <span class="music-source-icon" aria-hidden="true">♫</span>
+                        <select id="quick-stored-track-select" class="music-playlist-select"
+                            aria-label="Stored track">
+                            <option value="">Stored track</option>
+                        </select>
+                        <button type="button" id="btn-use-quick-stored-track"
+                            class="music-source-use" aria-label="Use stored track"
+                            title="Use stored track">▶</button>
+                    </div>
 
-                <select
-                    id="saved-playlist-select"
-                    class="music-playlist-select"
-                >
-                    <option value="">
-                        Select saved playlist
-                    </option>
-                </select>
-
-
-                <button
-                    type="button"
-                    id="btn-use-saved-playlist"
-                    class="music-file-btn music-saved-playlist-btn"
-                >
-                    Use Saved Playlist
-                </button>
-
-
-            </div>
-
-
-            <div
-                class="control-pill hidden music-control"
-                id="ui-quick-music"
-            >
-                <label>Quick Music</label>
-
-                <select
-                    id="quick-stored-track-select"
-                    class="music-playlist-select"
-                >
-                    <option value="">Select stored audio</option>
-                </select>
-
-                <button
-                    type="button"
-                    id="btn-use-quick-stored-track"
-                    class="music-file-btn"
-                >
-                    Use Stored Audio
-                </button>
-
-                <div class="quick-music-divider">OR PHONE STORAGE</div>
-
-                <label
-                    for="input-music"
-                    class="music-file-btn"
-                >
-                    Choose Music
-                </label>
-
-                <input
-                    type="file"
-                    id="input-music"
-                    accept="audio/*"
-                    multiple
-                    class="music-file-input"
-                >
-
-                <label class="quick-music-save-option">
-                    <input type="checkbox" id="quick-music-save-library">
-                    <span>Save chosen phone files to Nova Library</span>
-                </label>
+                    <div class="music-source-phone-row">
+                        <label for="input-music" class="music-file-btn music-phone-btn">
+                            <span aria-hidden="true">📁</span>
+                            <span>Phone</span>
+                        </label>
+                        <input type="file" id="input-music" accept="audio/*" multiple
+                            class="music-file-input">
+                        <label class="quick-music-save-option">
+                            <input type="checkbox" id="quick-music-save-library">
+                            <span>Save to Library</span>
+                        </label>
+                    </div>
+                </div>
 
                 <div
                     id="music-playlist-info"
@@ -700,7 +676,7 @@
         </div>
 
         <div>
-            Version 2.3a
+            Version 3.0.0
         </div>
 
     </div>
@@ -711,6 +687,40 @@
         class="log-box"
     ></div>
 
+</div>
+
+
+<div id="statistics-modal" class="modal-overlay">
+    <div class="modal statistics-modal">
+        <div class="modal-header">
+            <div class="header-top">
+                <div class="title-container">Update Statistics</div>
+                <button type="button" class="modal-close"
+                    onclick="window.closeStatisticsDialog()" aria-label="Close">×</button>
+            </div>
+        </div>
+
+        <div class="statistics-fields">
+            <label for="statistics-balls">
+                <span>Starting Balls</span>
+                <input type="number" id="statistics-balls" min="0" step="1"
+                    inputmode="numeric">
+            </label>
+            <label for="statistics-drills">
+                <span>Starting Drills</span>
+                <input type="number" id="statistics-drills" min="0" step="1"
+                    inputmode="numeric">
+            </label>
+            <p>Future balls and completed drills will count upward from these totals.</p>
+        </div>
+
+        <div class="modal-footer statistics-actions">
+            <button type="button" class="btn-modal statistics-cancel"
+                onclick="window.closeStatisticsDialog()">Cancel</button>
+            <button type="button" class="btn-modal statistics-save"
+                onclick="window.saveStatisticsUpdate()">Save</button>
+        </div>
+    </div>
 </div>
 
 

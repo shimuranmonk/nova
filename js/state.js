@@ -13,6 +13,16 @@ export let selectedLevel = 1;
 export let runMode = "reps";
 export let appStats = { balls: 0, drills: 0 };
 
+export function normalizeStatistics(value) {
+    const normalize = number => Number.isSafeInteger(Number(number)) && Number(number) >= 0
+        ? Number(number)
+        : 0;
+    return {
+        balls: normalize(value?.balls),
+        drills: normalize(value?.drills)
+    };
+}
+
 // --- NEW: Session Summary State ---
 let sessionSnapshot = { balls: 0, drills: 0 };
 let sessionStartTime = 0;
@@ -47,7 +57,10 @@ export function initData() {
     const savedTheme = localStorage.getItem('nova_theme_pref');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
     const savedStats = localStorage.getItem('nova_stats');
-    if (savedStats) { try { appStats = JSON.parse(savedStats); } catch(e){} }
+    if (savedStats) {
+        try { appStats = normalizeStatistics(JSON.parse(savedStats)); }
+        catch(e) { appStats = { balls: 0, drills: 0 }; }
+    }
 
     const savedDrills = localStorage.getItem('custom_drills');
     const userDefaults = localStorage.getItem('user_defaults');
@@ -150,6 +163,20 @@ export function resetStats() {
         showToast("Statistics Reset");
         document.dispatchEvent(new CustomEvent('stats-updated'));
     }
+}
+
+export function updateStatistics(balls, drills) {
+    const next = normalizeStatistics({ balls, drills });
+    if (next.balls !== Number(balls) || next.drills !== Number(drills)) {
+        throw new Error('Statistics must be non-negative whole numbers');
+    }
+    appStats.balls = next.balls;
+    appStats.drills = next.drills;
+    sessionSnapshot = { ...next };
+    sessionStartTime = Date.now();
+    localStorage.setItem('nova_stats', JSON.stringify(appStats));
+    document.dispatchEvent(new CustomEvent('stats-updated'));
+    return { ...appStats };
 }
 
 // --- Helper Functions ---

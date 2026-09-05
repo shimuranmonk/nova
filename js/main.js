@@ -3,6 +3,7 @@ import {
     setLevel,
     setMode,
     resetStats,
+    updateStatistics,
     importCustomDrills,
     exportCustomDrills,
     saveAsDefault,
@@ -149,7 +150,7 @@ async function refreshQuickStoredTracks(preferredId = null) {
     const tracks = await getAllTracks();
     tracks.sort((a, b) => String(a.displayName || a.filename || '')
         .localeCompare(String(b.displayName || b.filename || '')));
-    select.replaceChildren(new Option('Select stored audio', ''));
+    select.replaceChildren(new Option('Stored track', ''));
     for (const track of tracks) {
         select.append(new Option(track.displayName || track.filename || 'Unknown Track', track.id));
     }
@@ -907,6 +908,33 @@ window.setMode =
 
 window.resetStats =
     resetStats;
+
+window.openStatisticsDialog = () => {
+    const modal = document.getElementById('statistics-modal');
+    const balls = document.getElementById('statistics-balls');
+    const drills = document.getElementById('statistics-drills');
+    if (balls) balls.value = appStats.balls;
+    if (drills) drills.value = appStats.drills;
+    modal?.classList.add('open');
+    document.getElementById('theme-menu')?.classList.remove('open');
+};
+
+window.closeStatisticsDialog = () => {
+    document.getElementById('statistics-modal')?.classList.remove('open');
+};
+
+window.saveStatisticsUpdate = () => {
+    try {
+        const balls = Number(document.getElementById('statistics-balls')?.value);
+        const drills = Number(document.getElementById('statistics-drills')?.value);
+        updateStatistics(balls, drills);
+        window.closeStatisticsDialog();
+        showToast('Statistics updated');
+    }
+    catch (error) {
+        showToast(error.message);
+    }
+};
 
 
 window.saveAsDefault =
