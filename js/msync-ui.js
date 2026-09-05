@@ -344,14 +344,20 @@ async function copyValidationReport() {
     }
 }
 
+export function msyncExportFilename(attachment, track) {
+    const sourceBase = String(attachment?.sourceFilename ||
+        track?.displayName || track?.filename || 'msync')
+        .replace(/\.(?:msync|ini)$/i, '');
+    return `${sourceBase}.ini`;
+}
+
 function exportAttachment() {
     const attachment = selectedTrack?.metadata?.msync;
     if (!attachment?.sourceText) return;
     const blob = new Blob([attachment.sourceText], { type: 'text/plain;charset=utf-8' });
     const link = document.createElement('a');
-    const fallback = `${selectedTrack.displayName || selectedTrack.filename}.msync`;
     link.href = URL.createObjectURL(blob);
-    link.download = attachment.sourceFilename || fallback;
+    link.download = msyncExportFilename(attachment, selectedTrack);
     link.click();
     URL.revokeObjectURL(link.href);
 }
