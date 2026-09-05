@@ -210,3 +210,24 @@ test('permission and microphone errors disable recognition safely', async () => 
         assert.equal(statuses.at(-1).state, VOICE_RECOGNITION_STATES.ERROR);
     }
 });
+
+test('NOVA STOP wins when one result event contains multiple commands', async () => {
+    const Recognition = makeRecognitionClass();
+    const commands = [];
+    const engine = createVoiceRecognitionEngine({
+        scope: { SpeechRecognition: Recognition },
+        onCommand: ({ command }) => commands.push(command)
+    });
+
+    await engine.start();
+    Recognition.instances.at(-1).onresult({
+        resultIndex: 0,
+        results: [
+            { isFinal: true, 0: { transcript: 'nova start' } },
+            { isFinal: true, 0: { transcript: 'nova stop' } },
+            { isFinal: true, 0: { transcript: 'nova resume' } }
+        ]
+    });
+
+    assert.deepEqual(commands, [COMMANDS.STOP]);
+});

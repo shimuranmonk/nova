@@ -12,7 +12,8 @@ import {
     userCustomDrills,
     currentDrills,
     saveDrillsToStorage,
-    selectedLevel
+    selectedLevel,
+    runMode
 } from './state.js';
 
 
@@ -74,6 +75,10 @@ import {
 import {
     createVoiceTestMode
 } from './voice-test-mode.js';
+
+import {
+    createVoiceCommandRouter
+} from './voice-command-router.js';
 
 
 import {
@@ -214,14 +219,22 @@ const voiceRecognitionEngine = createVoiceRecognitionEngine({
             );
         }
     },
-    onCommand: ({ phrase }) => {
+    onCommand: ({ phrase, command }) => {
         if (voiceTestMode.isActive()) {
             return;
         }
 
-        // Phase 6 will route this into the canonical command controller.
+        const outcome = voiceCommandRouter.route(command);
+        const reason = outcome.reason
+            ? ` — ${outcome.reason}`
+            : '';
+
         updateVoiceRecognitionStatus(
-            `Heard — ${phrase}`
+            `${phrase} — ${outcome.status}${reason}`
+        );
+
+        showToast(
+            `Voice ${command}: ${outcome.status}${reason}`
         );
     }
 });
@@ -326,10 +339,36 @@ function startArmedStandardDrill() {
         };
     }
 
-    return standardCommandController.execute(
+    const outcome = standardCommandController.execute(
         COMMANDS.START,
         { drillName: armed.key }
     );
+
+    if (outcome.status === COMMAND_RESULTS.EXECUTED) {
+        markDrillRunning(armed.key);
+    }
+
+    return outcome;
+}
+
+const voiceCommandRouter = createVoiceCommandRouter({
+    isTestMode: () => voiceTestMode.isActive(),
+    getMode: () => runMode,
+    getStandardState: getStandardCommandState,
+    startStandard: startArmedStandardDrill,
+    executeStandard: (command) =>
+        standardCommandController.execute(command)
+});
+
+function markDrillRunning(key) {
+    document
+        .querySelectorAll('.btn-drill')
+        .forEach((button) => {
+            button.classList.toggle(
+                'running',
+                button.dataset.key === key
+            );
+        });
 }
 
 function toggleStandardPause() {
@@ -1208,21 +1247,7 @@ window.handleDrillClick =
             return;
         }
 
-        document
-            .querySelectorAll(
-                '.btn-drill'
-            )
-            .forEach(
-                b =>
-                    b.classList.remove(
-                        'running'
-                    )
-            );
-
-
-        btn.classList.add(
-            'running'
-        );
+        markDrillRunning(key);
     };
 
 

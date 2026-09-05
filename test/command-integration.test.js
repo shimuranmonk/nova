@@ -55,22 +55,24 @@ test('Voice Start Ready arms standard drills and starts only the armed key', asy
     );
 });
 
-test('voice recognition reports phrases without executing commands in Phase 4', async () => {
+test('voice recognition routes standard commands while preserving Test Mode', async () => {
     const main = await readFile(
         new URL('../js/main.js', import.meta.url),
         'utf8'
     );
 
     assert.match(main, /createVoiceRecognitionEngine\s*\(\s*\{/);
-    assert.match(main, /onCommand:\s*\(\{\s*phrase\s*\}\)\s*=>/);
-    assert.match(main, /Phase 6 will route this/);
+    assert.match(main, /createVoiceCommandRouter\s*\(\s*\{/);
+    assert.match(main, /onCommand:\s*\(\{\s*phrase,\s*command\s*\}\)\s*=>/);
+    assert.match(main, /voiceCommandRouter\.route\(command\)/);
     assert.match(
         main,
         /onCommand:[\s\S]{0,150}voiceTestMode\.isActive\(\)[\s\S]{0,80}return/
     );
-    assert.doesNotMatch(
+    assert.match(main, /startStandard:\s*startArmedStandardDrill/);
+    assert.match(
         main,
-        /onCommand:[\s\S]{0,300}standardCommandController\.execute/
+        /executeStandard:[\s\S]{0,100}standardCommandController\.execute\(command\)/
     );
 });
 

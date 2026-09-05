@@ -99,6 +99,7 @@ export function createVoiceRecognitionEngine({
         const startIndex = Number.isInteger(event?.resultIndex)
             ? event.resultIndex
             : 0;
+        const recognizedCommands = [];
 
         for (let index = startIndex; index < results.length; index++) {
             const result = results[index];
@@ -137,8 +138,19 @@ export function createVoiceRecognitionEngine({
 
             lastCommand = match.command;
             lastCommandAt = recognizedAt;
-            onCommand(detail);
+            recognizedCommands.push(detail);
         }
+
+        const stopCommand = recognizedCommands.find(
+            (detail) => detail.command === COMMANDS.STOP
+        );
+
+        if (stopCommand) {
+            onCommand(stopCommand);
+            return;
+        }
+
+        recognizedCommands.forEach(onCommand);
     }
 
     function handleError(event) {
