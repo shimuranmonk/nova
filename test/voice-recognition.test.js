@@ -166,6 +166,7 @@ test('ignores interim and unknown speech and deduplicates final commands', async
     assert.equal(commands[0].command, COMMANDS.START);
     assert.equal(commands[0].confidence, 0.9);
     assert.equal(commands[0].recognitionMs, 320);
+    active.onend();
 });
 
 test('restarts after browser end only while enabled', async () => {
@@ -193,6 +194,37 @@ test('restarts after browser end only while enabled', async () => {
     engine.stop();
     assert.equal(active.aborted, true);
     assert.equal(scheduled, null);
+});
+
+test('watchdog replaces a listener when Android omits the end event', async () => {
+    const Recognition = makeRecognitionClass();
+    let scheduled = null;
+    let timerId = 0;
+    const engine = createVoiceRecognitionEngine({
+        scope: { SpeechRecognition: Recognition },
+        setTimer: (callback) => {
+            scheduled = callback;
+            return ++timerId;
+        },
+        clearTimer: () => { scheduled = null; }
+    });
+
+    await engine.start();
+    const stalled = Recognition.instances.at(-1);
+    stalled.onresult({
+        resultIndex: 0,
+        results: [{ isFinal: true, 0: { transcript: 'nova rest' } }]
+    });
+
+    assert.equal(typeof scheduled, 'function');
+    const watchdog = scheduled;
+    watchdog();
+    assert.equal(stalled.aborted, true);
+
+    assert.equal(typeof scheduled, 'function');
+    const restart = scheduled;
+    restart();
+    assert.equal(Recognition.instances.length, 3);
 });
 
 test('permission and microphone errors disable recognition safely', async () => {
@@ -231,4 +263,5 @@ test('NOVA STOP wins when one result event contains multiple commands', async ()
     });
 
     assert.deepEqual(commands, [COMMANDS.STOP]);
+    Recognition.instances.at(-1).onend();
 });

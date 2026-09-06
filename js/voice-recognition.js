@@ -41,7 +41,8 @@ export function createVoiceRecognitionEngine({
     scope = globalThis,
     language = 'en-US',
     allowOnlineFallback = true,
-    restartDelayMs = 250,
+    restartDelayMs = 750,
+    endWatchdogMs = 1500,
     duplicateWindowMs = 750,
     now = () => Date.now(),
     setTimer = (callback, delay) => setTimeout(callback, delay),
@@ -54,6 +55,7 @@ export function createVoiceRecognitionEngine({
     let enabled = false;
     let recognition = null;
     let restartTimer = null;
+    let endWatchdogTimer = null;
     let generation = 0;
     let recognitionMode = 'unavailable';
     let localModeRejected = false;
@@ -78,6 +80,38 @@ export function createVoiceRecognitionEngine({
         }
     }
 
+    function clearEndWatchdog() {
+        if (endWatchdogTimer !== null) {
+            clearTimer(endWatchdogTimer);
+            endWatchdogTimer = null;
+        }
+    }
+
+    function supervisePhraseEnd(activeRecognition) {
+        clearEndWatchdog();
+
+        endWatchdogTimer = setTimer(() => {
+            endWatchdogTimer = null;
+
+            if (!enabled || recognition !== activeRecognition) {
+                return;
+            }
+
+            activeRecognition.onend = null;
+            activeRecognition.onerror = null;
+
+            try {
+                activeRecognition.abort();
+            }
+            catch {
+                // The stale Android recognition session may already be gone.
+            }
+
+            recognition = null;
+            scheduleRestart();
+        }, endWatchdogMs);
+    }
+
     function scheduleRestart() {
         if (!enabled || restartTimer !== null) {
             return;
@@ -94,12 +128,13 @@ export function createVoiceRecognitionEngine({
         }, restartDelayMs);
     }
 
-    function handleResult(event) {
+    function handleResult(event, activeRecognition) {
         const results = event?.results || [];
         const startIndex = Number.isInteger(event?.resultIndex)
             ? event.resultIndex
             : 0;
         const recognizedCommands = [];
+        let receivedFinalResult = false;
 
         for (let index = startIndex; index < results.length; index++) {
             const result = results[index];
@@ -107,6 +142,8 @@ export function createVoiceRecognitionEngine({
             if (!result?.isFinal || !result[0]) {
                 continue;
             }
+
+            receivedFinalResult = true;
 
             const transcript = String(result[0].transcript || '');
             const confidence = Number.isFinite(result[0].confidence)
@@ -147,10 +184,17 @@ export function createVoiceRecognitionEngine({
 
         if (stopCommand) {
             onCommand(stopCommand);
-            return;
+        }
+        else {
+            recognizedCommands.forEach(onCommand);
         }
 
-        recognizedCommands.forEach(onCommand);
+        if (receivedFinalResult) {
+            // A single-phrase session should emit onend. Some Android Chrome
+            // sessions remain silently stuck instead; the watchdog retires
+            // only that stale instance and opens a fresh listener.
+            supervisePhraseEnd(activeRecognition);
+        }
     }
 
     function handleError(event) {
@@ -232,9 +276,13 @@ export function createVoiceRecognitionEngine({
         recognition.onspeechstart = () => {
             speechStartedAt = now();
         };
-        recognition.onresult = handleResult;
+        const activeRecognition = recognition;
+        recognition.onresult = (event) =>
+            handleResult(event, activeRecognition);
         recognition.onerror = handleError;
         recognition.onend = () => {
+            if (recognition !== activeRecognition) return;
+            clearEndWatchdog();
             recognition = null;
             scheduleRestart();
         };
@@ -244,6 +292,7 @@ export function createVoiceRecognitionEngine({
             return true;
         }
         catch (error) {
+            recognition = null;
             report(
                 VOICE_RECOGNITION_STATES.ERROR,
                 'Unable to start voice recognition',
@@ -342,6 +391,7 @@ export function createVoiceRecognitionEngine({
             enabled = false;
             generation++;
             clearRestart();
+            clearEndWatchdog();
 
             const activeRecognition = recognition;
             recognition = null;
