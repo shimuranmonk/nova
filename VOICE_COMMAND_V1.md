@@ -70,12 +70,12 @@ For Reps, Time, and Music:
 - When no session is active, STOP is a harmless no-op and reports `Nothing to stop`.
 - Voice STOP is a convenience control, not a replacement for the visible touch Stop control or physical safety precautions.
 
-## 6. NOVA PAUSE
+## 6. NOVA REST
 
-- PAUSE is accepted only while a session is running.
+- REST is the spoken command for the existing Pause operation and is accepted only while a session is running.
 - It uses an explicit pause operation, never a pause/resume toggle.
-- Repeating PAUSE while already paused is a harmless no-op.
-- PAUSE during idle or countdown is ignored with a visible reason.
+- Repeating REST while already paused is a harmless no-op.
+- REST during idle or countdown is ignored with a visible reason.
 - Mode-specific audio follows the existing pause behavior.
 
 ## 7. NOVA RESUME
@@ -93,7 +93,7 @@ The V1 vocabulary is exact and limited to:
 ```text
 NOVA START
 NOVA STOP
-NOVA PAUSE
+NOVA REST
 NOVA RESUME
 ```
 
@@ -116,7 +116,7 @@ To keep V1 simple and prevent voice from choosing between Simulation and Live Ro
 - Arming Live Robot performs the existing live confirmation and readiness checks. Voice cannot bypass them.
 - Only one MSYNC target can be armed at a time.
 - `NOVA START` starts that armed target only if the attached MSYNC file remains valid and all target requirements remain satisfied.
-- `NOVA PAUSE`, `NOVA RESUME`, and `NOVA STOP` call the MSYNC session controller's corresponding operations.
+- `NOVA REST`, `NOVA RESUME`, and `NOVA STOP` call the MSYNC session controller's corresponding operations. Spoken `NOVA REST` pauses the complete session; it does not create or invoke a timed MSYNC `REST` cue.
 - Leaving the MSYNC tab or turning Voice Start Ready off clears the MSYNC armed target.
 - With Voice Start Ready off, both MSYNC start buttons retain their current immediate-start behavior.
 

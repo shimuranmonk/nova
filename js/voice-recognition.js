@@ -3,7 +3,7 @@ import { COMMANDS } from './command-controller.js';
 export const VOICE_PHRASES = Object.freeze({
     'NOVA START': COMMANDS.START,
     'NOVA STOP': COMMANDS.STOP,
-    'NOVA PAUSE': COMMANDS.PAUSE,
+    'NOVA REST': COMMANDS.PAUSE,
     'NOVA RESUME': COMMANDS.RESUME
 });
 

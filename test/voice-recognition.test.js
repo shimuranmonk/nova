@@ -52,7 +52,8 @@ test('normalizes only the four exact approved command phrases', () => {
     assert.equal(normalizeVoicePhrase('  nova   start. '), 'NOVA START');
     assert.equal(matchVoiceCommand('nova start').command, COMMANDS.START);
     assert.equal(matchVoiceCommand('NOVA STOP!').command, COMMANDS.STOP);
-    assert.equal(matchVoiceCommand('nova pause').command, COMMANDS.PAUSE);
+    assert.equal(matchVoiceCommand('nova rest').command, COMMANDS.PAUSE);
+    assert.equal(matchVoiceCommand('nova pause').command, null);
     assert.equal(matchVoiceCommand('nova resume').command, COMMANDS.RESUME);
     assert.equal(matchVoiceCommand('start').command, null);
     assert.equal(matchVoiceCommand('nova start now').command, null);
