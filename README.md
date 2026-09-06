@@ -6,7 +6,7 @@ This project is based on the original Nova web client by [olanga](https://github
 
 This fork adds additional training-session features while retaining the original drill editor, Bluetooth control, drill management, and local browser storage.
 
-*For reasons not presently understood, this repository was unforked from olanga's repository, and GitHub Pages is currently not publishing the site.*
+NOTE: *For reasons not presently understood, this repository was unforked from olanga's repository, and GitHub Pages is currently not publishing the site. How to fork back?*
 
 ## Use Online
 
