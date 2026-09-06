@@ -8,6 +8,8 @@ This fork adds additional training-session features while retaining the original
 
 NOTE: *For reasons not presently understood, this repository was unforked from olanga's repository, and GitHub Pages is currently not publishing the site. How to fork back?*
 
+*Voice-command control is still under development and is currently very buggy.*
+
 ## Use Online
 
 Open the web application:
