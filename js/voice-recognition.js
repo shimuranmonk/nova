@@ -208,7 +208,10 @@ export function createVoiceRecognitionEngine({
 
         recognition = new Recognition();
         recognition.lang = language;
-        recognition.continuous = true;
+        // Android Chrome can leave a continuous recognition session alive but
+        // no longer listening after it returns the first command. Use one
+        // phrase per session; onend starts a fresh listener automatically.
+        recognition.continuous = false;
         recognition.interimResults = false;
         recognition.maxAlternatives = 1;
 

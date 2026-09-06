@@ -99,7 +99,7 @@ test('prefers an installed on-device language pack', async () => {
     assert.equal(engine.getMode(), 'local');
     assert.equal(active.processLocally, true);
     assert.equal(active.lang, 'en-US');
-    assert.equal(active.continuous, true);
+    assert.equal(active.continuous, false);
     assert.equal(active.interimResults, false);
     assert.equal(active.maxAlternatives, 1);
     assert.equal(statuses.at(-1).state, VOICE_RECOGNITION_STATES.LISTENING);
