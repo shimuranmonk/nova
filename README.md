@@ -83,6 +83,17 @@ MSYNC runs externally authored `.ini` cue files against audio saved through
 Playlist Manager. Music mode ignores MSYNC attachments; synchronization is
 used only in the MSYNC tab.
 
+#### Create an MSYNC File Automatically
+
+Use the [Nova S Pro MSYNC Coach](https://l1nq.com/bEyRac0)
+to create an MSYNC file for Nova Drill Control PLUS. Upload an MP3 file to the
+coach and it will analyze the audio and generate timed cues intended to
+synchronize Nova S Pro drills with the selected music.
+
+Review and adjust the generated file as needed, then attach it to the matching
+stored audio track through the **MSYNC** tab. Always verify a generated file
+with **Start Simulation** before using **Start Live Robot**.
+
 To use MSYNC mode:
 
 1. Save the intended audio in **Manage Playlists**, then select **MSYNC**.

@@ -660,6 +660,11 @@ It also accepts legacy `.msync` filenames so existing files and attachments
 remain usable. New files and Nova exports use `.ini`. Nova does not create or
 edit their contents.
 
+The [Nova S Pro MSYNC Coach](https://l1nq.com/bEyRac0) can create an external
+MSYNC file by analyzing an uploaded MP3 and generating timed cues for the
+selected audio. The generated file remains externally authored and must meet
+this complete v1 format contract.
+
 ## Flavor parameter names
 
 Flavor variables use Nova's published ball-parameter vocabulary and direct Nova
