@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
     ROBOT_DONE_SAFETY_MS,
+    ROBOT_PERSISTENT_CYCLES,
     ROBOT_STOP_PACKET,
     MsyncRobotAdapter,
     buildMsyncDrillPacket,
@@ -62,13 +63,14 @@ test('chooses one alternative per step and builds the established packet shape',
         ]
     };
     const balls = chooseMsyncBalls(execution, () => 0);
-    const packet = buildMsyncDrillPacket(balls, () => new Uint8Array(24));
+    const packet = buildMsyncDrillPacket(balls, 1, () => new Uint8Array(24));
 
     assert.equal(balls.length, 2);
     assert.equal(balls[0][0], 1000);
     assert.equal(packet.length, 55);
     assert.equal(packet[0], 0x81);
     assert.equal(new DataView(packet.buffer).getUint16(1, true), 52);
+    assert.equal(new DataView(packet.buffer).getUint16(4, true), 1);
 });
 
 test('live replacement always serializes STOP before a drill packet', async () => {
@@ -95,6 +97,8 @@ test('live replacement always serializes STOP before a drill packet', async () =
 
     assert.deepEqual(sent[0], ROBOT_STOP_PACKET);
     assert.equal(sent[1][0], 0x81);
+    assert.equal(new DataView(Uint8Array.from(sent[1]).buffer).getUint16(4, true),
+        ROBOT_PERSISTENT_CYCLES);
     assert.equal(diagnostics[0].type, 'ROBOT_REPLACE_SENT');
     assert.equal(diagnostics[0].dispatchMs, 10);
     assert.equal(typeof doneListener, 'function');
@@ -181,9 +185,9 @@ test('missing robot DONE notification falls back to a timed persistent repeat', 
 
 test('DONE fallback follows the editable ROBOT_LEAD including zero', async () => {
     for (const [robotLead, expectedDelay] of [
-        [0, 1000 + ROBOT_DONE_SAFETY_MS],
-        [0.8, 1000 + 800 + ROBOT_DONE_SAFETY_MS],
-        [2, 1000 + 2000 + ROBOT_DONE_SAFETY_MS]
+        [0, 1000 * ROBOT_PERSISTENT_CYCLES + ROBOT_DONE_SAFETY_MS],
+        [0.8, 1000 * ROBOT_PERSISTENT_CYCLES + 800 + ROBOT_DONE_SAFETY_MS],
+        [2, 1000 * ROBOT_PERSISTENT_CYCLES + 2000 + ROBOT_DONE_SAFETY_MS]
     ]) {
         const timers = [];
         const adapter = new MsyncRobotAdapter({

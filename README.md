@@ -105,8 +105,9 @@ To use MSYNC mode:
    `.ini` file.
 3. Tap **Choose MSYNC .ini File** and select the matching file. Validation errors
    must be corrected; warnings require explicit acceptance.
-   `DRILL` and `INLINE` cues repeat by default. Add `;ONCE` to either activation
-   when it should run exactly one complete cycle and then leave the robot idle.
+   `DRILL` and `INLINE` cues run continuously in 100-cycle robot batches by
+   default. Add `;ONCE` to either activation when it should run exactly one
+   complete cycle and then leave the robot idle.
 4. Adjust **Robot Lead** if needed. The default `1.300` seconds compensates for
    measured command-to-ball launch delay without changing the music timeline.
 5. Use **Start Simulation** to verify the cues without robot commands.
