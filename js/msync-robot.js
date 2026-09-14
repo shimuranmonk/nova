@@ -1,6 +1,7 @@
 export const ROBOT_STOP_PACKET = Object.freeze([0x80, 1, 0, 1]);
 export const ROBOT_DONE_SAFETY_MS = 750;
 export const ROBOT_PERSISTENT_CYCLES = 100;
+export const ROBOT_REPLACEMENT_SETTLE_MS = 300;
 
 function packRobotBall(top, bottom, height, drop, frequency, reps) {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -153,11 +154,13 @@ export function buildMsyncDrillPacket(balls, cycles = 1, pack = packRobotBall) {
 
 export class MsyncRobotAdapter {
     constructor({ send, subscribeDone, isConnected, setTimer = (fn, ms) => setTimeout(fn, ms),
-        clearTimer = id => clearTimeout(id), now = () => performance.now(), onDiagnostic = () => {} }) {
+        clearTimer = id => clearTimeout(id), wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
+        now = () => performance.now(), onDiagnostic = () => {} }) {
         this.send = send;
         this.isConnected = isConnected;
         this.setTimer = setTimer;
         this.clearTimer = clearTimer;
+        this.wait = wait;
         this.now = now;
         this.onDiagnostic = onDiagnostic;
         this.execution = null;
@@ -231,6 +234,7 @@ export class MsyncRobotAdapter {
 
     replace() {
         const generation = ++this.generation;
+        const replacingActiveBatch = this.awaitingCycleDone;
         this.awaitingCycleDone = false;
         this.clearTimer(this.repeatTimer);
         this.clearTimer(this.completionTimer);
@@ -241,6 +245,7 @@ export class MsyncRobotAdapter {
             if (!this.isConnected()) throw new Error('Robot disconnected');
             const startedAt = this.now();
             await this.send(ROBOT_STOP_PACKET);
+            if (replacingActiveBatch) await this.wait(ROBOT_REPLACEMENT_SETTLE_MS);
             if (generation !== this.generation || this.resting || this.paused) return;
             const balls = chooseMsyncBalls(this.execution);
             const batchCycles = this.execution.once ? 1 : ROBOT_PERSISTENT_CYCLES;
