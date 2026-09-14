@@ -22,9 +22,26 @@ globalThis.Audio = class {
 };
 
 const {
+    describeRobotDiagnostic,
     formatMsyncValidationReport,
     msyncExportFilename
 } = await import('../js/msync-ui.js');
+
+test('treats fallback and ONCE completion as nonfatal robot diagnostics', () => {
+    const fallback = describeRobotDiagnostic({
+        type: 'ROBOT_DONE_FALLBACK',
+        expectedMs: 4050
+    });
+    const once = describeRobotDiagnostic({ type: 'ROBOT_ONCE_COMPLETE' });
+    const error = describeRobotDiagnostic({ type: 'ROBOT_ERROR' });
+
+    assert.equal(fallback.fatal, false);
+    assert.match(fallback.text, /ROBOT DONE FALLBACK/);
+    assert.doesNotMatch(fallback.text, /undefined/);
+    assert.equal(once.fatal, false);
+    assert.equal(error.fatal, true);
+    assert.match(error.text, /Unknown robot error/);
+});
 
 test('formats a complete copyable validation report', () => {
     const report = formatMsyncValidationReport({

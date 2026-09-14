@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+    ROBOT_DONE_SAFETY_MS,
     ROBOT_STOP_PACKET,
     MsyncRobotAdapter,
     buildMsyncDrillPacket,
@@ -176,6 +177,38 @@ test('missing robot DONE notification falls back to a timed persistent repeat', 
     timers.at(-1).callback();
     await adapter.queue;
     assert.equal(diagnostics.filter(value => value.type === 'ROBOT_REPLACE_SENT').length, 2);
+});
+
+test('DONE fallback follows the editable ROBOT_LEAD including zero', async () => {
+    for (const [robotLead, expectedDelay] of [
+        [0, 1000 + ROBOT_DONE_SAFETY_MS],
+        [0.8, 1000 + 800 + ROBOT_DONE_SAFETY_MS],
+        [2, 1000 + 2000 + ROBOT_DONE_SAFETY_MS]
+    ]) {
+        const timers = [];
+        const adapter = new MsyncRobotAdapter({
+            send: async () => {},
+            subscribeDone: () => () => {},
+            isConnected: () => true,
+            setTimer: (callback, delay) => {
+                timers.push({ callback, delay });
+                return timers.length;
+            },
+            clearTimer: () => {},
+            now: () => 0
+        });
+        const parsed = parsedFixture();
+        parsed.session.robotLead = robotLead;
+        parsed.drills.DRL_TEST.data = [[[1547, 2915, 50, -5, 50, 1, 1]]];
+        adapter.configure(parsed);
+        adapter.handleSessionEvent({
+            type: 'ACTIVATE',
+            active: { type: 'DRILL', name: 'DRL_TEST' },
+            flavor: null
+        });
+        await adapter.queue;
+        assert.equal(timers.at(-1).delay, expectedDelay);
+    }
 });
 
 test('ONCE completes one cycle and ignores later flavor changes until reactivated', async () => {

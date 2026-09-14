@@ -147,18 +147,40 @@ function recordSimulationEvent(event) {
     element('msync-event-log').textContent = simulationEvents.join('\n');
 }
 
-function recordRobotDiagnostic(event) {
+export function describeRobotDiagnostic(event) {
     if (event.type === 'ROBOT_REPLACE_SENT') {
-        simulationEvents.push(
-            `${eventPosition(null)}  ROBOT SENT ${event.ballCount} ball${event.ballCount === 1 ? '' : 's'}; dispatch ${event.dispatchMs.toFixed(1)}ms`
-        );
+        return {
+            fatal: false,
+            text: `ROBOT SENT ${event.ballCount} ball${event.ballCount === 1 ? '' : 's'}; dispatch ${event.dispatchMs.toFixed(1)}ms`
+        };
     }
-    else if (event.type === 'ROBOT_STOP_SENT') {
-        simulationEvents.push(`${eventPosition(null)}  ROBOT STOP ${event.reason}`);
+    if (event.type === 'ROBOT_STOP_SENT') {
+        return { fatal: false, text: `ROBOT STOP ${event.reason}` };
     }
-    else {
-        simulationEvents.push(`${eventPosition(null)}  ROBOT ERROR ${event.message}`);
-        sessionController?.fail('ROBOT_ERROR', new Error(event.message));
+    if (event.type === 'ROBOT_DONE_FALLBACK') {
+        return {
+            fatal: false,
+            text: `ROBOT DONE FALLBACK after ${Math.round(event.expectedMs)}ms`
+        };
+    }
+    if (event.type === 'ROBOT_ONCE_COMPLETE') {
+        return { fatal: false, text: 'ROBOT ONCE COMPLETE' };
+    }
+    if (event.type === 'ROBOT_ERROR') {
+        return {
+            fatal: true,
+            text: `ROBOT ERROR ${event.message || 'Unknown robot error'}`,
+            message: event.message || 'Unknown robot error'
+        };
+    }
+    return { fatal: false, text: `ROBOT ${event.type || 'DIAGNOSTIC'}` };
+}
+
+function recordRobotDiagnostic(event) {
+    const diagnostic = describeRobotDiagnostic(event);
+    simulationEvents.push(`${eventPosition(null)}  ${diagnostic.text}`);
+    if (diagnostic.fatal) {
+        sessionController?.fail('ROBOT_ERROR', new Error(diagnostic.message));
     }
     element('msync-event-log').textContent = simulationEvents.slice(-100).join('\n');
 }

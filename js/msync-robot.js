@@ -1,4 +1,5 @@
 export const ROBOT_STOP_PACKET = Object.freeze([0x80, 1, 0, 1]);
+export const ROBOT_DONE_SAFETY_MS = 750;
 
 function packRobotBall(top, bottom, height, drop, frequency, reps) {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -169,11 +170,15 @@ export class MsyncRobotAdapter {
         this.queue = Promise.resolve();
         this.unsubscribeDone = subscribeDone(() => this.handleDone());
         this.cyclePauseMs = 1000;
+        this.robotLeadMs = 1300;
     }
 
     configure(parsed) {
         this.parsed = parsed;
         this.cyclePauseMs = Math.round((parsed.session?.cyclePause ?? 1) * 1000);
+        const robotLead = Number(parsed.session?.robotLead);
+        this.robotLeadMs = Math.round(Math.min(5, Math.max(0,
+            Number.isFinite(robotLead) ? robotLead : 1.3)) * 1000);
     }
 
     handleSessionEvent(event) {
@@ -247,7 +252,7 @@ export class MsyncRobotAdapter {
                     this.awaitingCycleDone = false;
                     this.onDiagnostic({ type: 'ROBOT_DONE_FALLBACK', expectedMs });
                     this.scheduleRepeat(generation);
-                }, expectedMs + 250);
+                }, expectedMs + this.robotLeadMs + ROBOT_DONE_SAFETY_MS);
             }
             this.onDiagnostic({
                 type: 'ROBOT_REPLACE_SENT',
