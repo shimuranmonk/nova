@@ -151,7 +151,7 @@ export function describeRobotDiagnostic(event) {
     if (event.type === 'ROBOT_REPLACE_SENT') {
         return {
             fatal: false,
-            text: `ROBOT SENT ${event.ballCount} ball${event.ballCount === 1 ? '' : 's'}; dispatch ${event.dispatchMs.toFixed(1)}ms`
+            text: `ROBOT SENT ${event.ballCount} ball${event.ballCount === 1 ? '' : 's'} × ${event.batchCycles || 1} cycle${event.batchCycles === 1 ? '' : 's'}; dispatch ${event.dispatchMs.toFixed(1)}ms`
         };
     }
     if (event.type === 'ROBOT_STOP_SENT') {

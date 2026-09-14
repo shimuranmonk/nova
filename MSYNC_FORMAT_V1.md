@@ -324,9 +324,10 @@ ROBOT_LEAD=1.300
 start together. It ranges from 0 through 10 and defaults to 4. The countdown
 occurs before timeline position `00:00.000`; zero starts immediately.
 
-`CYCLE_PAUSE` is the delay in seconds after one complete drill cycle before the
-active drill repeats. It ranges from 0 through 10, accepts up to three decimal
-places, and defaults to 1. It does not insert delays between individual balls.
+`CYCLE_PAUSE` is the delay in seconds after one complete 100-cycle robot batch
+before a persistent active drill repeats. It ranges from 0 through 10, accepts
+up to three decimal places, and defaults to 1. It does not insert delays between
+individual balls or cycles inside a batch.
 
 `ROBOT_LEAD` advances scheduled robot commands to compensate for Bluetooth and
 mechanical launch latency. It ranges from 0 through 5 seconds, accepts up to
@@ -560,8 +561,8 @@ contain at least one `DRILL` or `INLINE` activation.
 
 `DRILL` resolves a defined `DRL_` alias and `INLINE` resolves a defined `INL_`
 name. Either activates a fresh unflavored execution copy and clears the prior
-drill and flavor. By default, both referenced and inline drills repeat complete
-cycles until replaced, rested, idled, or stopped. The optional uppercase
+drill and flavor. By default, both referenced and inline drills run continuously
+in 100-cycle robot batches until replaced, rested, idled, or stopped. The optional uppercase
 `;ONCE` modifier runs exactly one complete cycle and then leaves the robot idle
 until a later `DRILL` or `INLINE` cue. A one-ball definition with `;ONCE`
 therefore fires exactly one ball. `;ONCE` is playback control and is not a
@@ -709,13 +710,14 @@ produce warnings.
 
 ## Active drill behavior
 
-A `DRILL` or `INLINE` cue selects the active drill. The active drill repeats
-until another `DRILL`, another `INLINE`, `IDLE`, or `STOP` is reached. `FLV_REPS`
-controls repetitions within each drill cycle; it does not limit the number of
-cycles. Adding `;ONCE` to the activation suppresses repetition after that one
-cycle. Nova normally uses the robot's completion notification to begin the
-configured cycle pause; if that notification is absent, a duration-based safety
-fallback keeps persistent playback moving without affecting `;ONCE` cues.
+A `DRILL` or `INLINE` cue selects the active drill. The active drill runs in
+100-cycle robot batches until another `DRILL`, another `INLINE`, `IDLE`, or
+`STOP` is reached. `FLV_REPS` controls repetitions within each drill cycle; it
+does not limit the number of cycles. Adding `;ONCE` to the activation sends only
+one cycle. Nova normally uses the robot's completion notification to begin the
+configured pause between batches; if that notification is absent, a
+duration-based safety fallback keeps persistent playback moving without
+affecting `;ONCE` cues.
 
 ## REST command
 

@@ -1,5 +1,6 @@
 export const ROBOT_STOP_PACKET = Object.freeze([0x80, 1, 0, 1]);
 export const ROBOT_DONE_SAFETY_MS = 750;
+export const ROBOT_PERSISTENT_CYCLES = 100;
 
 function packRobotBall(top, bottom, height, drop, frequency, reps) {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -131,7 +132,7 @@ export function chooseMsyncBalls(execution, random = Math.random) {
     });
 }
 
-export function buildMsyncDrillPacket(balls, pack = packRobotBall) {
+export function buildMsyncDrillPacket(balls, cycles = 1, pack = packRobotBall) {
     if (!balls.length) throw new Error('MSYNC drill has no executable balls');
     const packed = balls.map(ball => pack(...ball));
     const buffer = new ArrayBuffer(7 + packed.length * 24);
@@ -139,7 +140,7 @@ export function buildMsyncDrillPacket(balls, pack = packRobotBall) {
     view.setUint8(0, 0x81);
     view.setUint16(1, 4 + packed.length * 24, true);
     view.setUint8(3, 1);
-    view.setUint16(4, 1, true);
+    view.setUint16(4, cycles, true);
     view.setUint8(6, 0);
     const packet = new Uint8Array(buffer);
     let offset = 7;
@@ -242,10 +243,11 @@ export class MsyncRobotAdapter {
             await this.send(ROBOT_STOP_PACKET);
             if (generation !== this.generation || this.resting || this.paused) return;
             const balls = chooseMsyncBalls(this.execution);
-            await this.send(buildMsyncDrillPacket(balls));
+            const batchCycles = this.execution.once ? 1 : ROBOT_PERSISTENT_CYCLES;
+            await this.send(buildMsyncDrillPacket(balls, batchCycles));
             this.awaitingCycleDone = true;
             if (!this.execution.once) {
-                const expectedMs = estimatedCycleDurationMs(balls);
+                const expectedMs = estimatedCycleDurationMs(balls) * batchCycles;
                 this.completionTimer = this.setTimer(() => {
                     if (generation !== this.generation || !this.awaitingCycleDone ||
                         this.resting || this.paused) return;
@@ -257,6 +259,7 @@ export class MsyncRobotAdapter {
             this.onDiagnostic({
                 type: 'ROBOT_REPLACE_SENT',
                 ballCount: balls.length,
+                batchCycles,
                 dispatchMs: Math.max(0, this.now() - startedAt)
             });
         }).catch(error => this.onDiagnostic({
