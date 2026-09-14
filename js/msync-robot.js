@@ -1,7 +1,7 @@
 export const ROBOT_STOP_PACKET = Object.freeze([0x80, 1, 0, 1]);
 export const ROBOT_DONE_SAFETY_MS = 750;
 export const ROBOT_PERSISTENT_CYCLES = 100;
-export const ROBOT_REPLACEMENT_SETTLE_MS = 300;
+export const ROBOT_STOP_ACK_TIMEOUT_MS = 1800;
 
 function packRobotBall(top, bottom, height, drop, frequency, reps) {
     const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -171,6 +171,7 @@ export class MsyncRobotAdapter {
         this.generation = 0;
         this.repeatTimer = null;
         this.completionTimer = null;
+        this.stopAckResolve = null;
         this.queue = Promise.resolve();
         this.unsubscribeDone = subscribeDone(() => this.handleDone());
         this.cyclePauseMs = 1000;
@@ -244,8 +245,11 @@ export class MsyncRobotAdapter {
             if (generation !== this.generation) return;
             if (!this.isConnected()) throw new Error('Robot disconnected');
             const startedAt = this.now();
+            const waitForStopAcknowledgement = replacingActiveBatch
+                ? this.createStopAcknowledgementWaiter()
+                : null;
             await this.send(ROBOT_STOP_PACKET);
-            if (replacingActiveBatch) await this.wait(ROBOT_REPLACEMENT_SETTLE_MS);
+            if (waitForStopAcknowledgement) await waitForStopAcknowledgement();
             if (generation !== this.generation || this.resting || this.paused) return;
             const balls = chooseMsyncBalls(this.execution);
             const batchCycles = this.execution.once ? 1 : ROBOT_PERSISTENT_CYCLES;
@@ -274,6 +278,26 @@ export class MsyncRobotAdapter {
         return this.queue;
     }
 
+    createStopAcknowledgementWaiter() {
+        let acknowledge;
+        const acknowledgement = new Promise(resolve => {
+            acknowledge = () => resolve('ACKNOWLEDGED');
+        });
+        this.stopAckResolve = acknowledge;
+        return async () => {
+            const result = await Promise.race([
+                acknowledgement,
+                this.wait(ROBOT_STOP_ACK_TIMEOUT_MS).then(() => 'TIMEOUT')
+            ]);
+            if (this.stopAckResolve === acknowledge) this.stopAckResolve = null;
+            this.onDiagnostic({
+                type: result === 'ACKNOWLEDGED'
+                    ? 'ROBOT_STOP_ACKNOWLEDGED'
+                    : 'ROBOT_STOP_ACK_TIMEOUT'
+            });
+        };
+    }
+
     stopOnly(reason) {
         ++this.generation;
         this.awaitingCycleDone = false;
@@ -292,6 +316,12 @@ export class MsyncRobotAdapter {
     }
 
     handleDone() {
+        if (this.stopAckResolve) {
+            const acknowledge = this.stopAckResolve;
+            this.stopAckResolve = null;
+            acknowledge();
+            return;
+        }
         if (!this.awaitingCycleDone || !this.execution || this.resting || this.paused || !this.isConnected()) return;
         this.awaitingCycleDone = false;
         this.clearTimer(this.completionTimer);

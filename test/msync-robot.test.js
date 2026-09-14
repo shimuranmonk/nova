@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import {
     ROBOT_DONE_SAFETY_MS,
     ROBOT_PERSISTENT_CYCLES,
-    ROBOT_REPLACEMENT_SETTLE_MS,
+    ROBOT_STOP_ACK_TIMEOUT_MS,
     ROBOT_STOP_PACKET,
     MsyncRobotAdapter,
     buildMsyncDrillPacket,
@@ -184,7 +184,7 @@ test('missing robot DONE notification falls back to a timed persistent repeat', 
     assert.equal(diagnostics.filter(value => value.type === 'ROBOT_REPLACE_SENT').length, 2);
 });
 
-test('changing an active live drill lets STOP settle before sending its replacement', async () => {
+test('changing an active live drill waits for STOP completion before replacement', async () => {
     const actions = [];
     const adapter = new MsyncRobotAdapter({
         send: async packet => actions.push(packet[0] === 0x80 ? 'STOP' : 'DRILL'),
@@ -207,7 +207,38 @@ test('changing an active live drill lets STOP settle before sending its replacem
     });
     await adapter.queue;
     assert.deepEqual(actions, [
-        'STOP', 'DRILL', 'STOP', `WAIT:${ROBOT_REPLACEMENT_SETTLE_MS}`, 'DRILL'
+        'STOP', 'DRILL', 'STOP', `WAIT:${ROBOT_STOP_ACK_TIMEOUT_MS}`, 'DRILL'
+    ]);
+});
+
+test('STOP acknowledgement launches the replacement without waiting for timeout', async () => {
+    const actions = [];
+    let doneListener;
+    const adapter = new MsyncRobotAdapter({
+        send: async packet => {
+            actions.push(packet[0] === 0x80 ? 'STOP' : 'DRILL');
+            if (packet[0] === 0x80 && actions.length > 2) doneListener();
+        },
+        subscribeDone: listener => { doneListener = listener; return () => {}; },
+        isConnected: () => true,
+        wait: () => new Promise(() => {}),
+        setTimer: () => 1,
+        clearTimer: () => {},
+        now: () => 0,
+        onDiagnostic: event => actions.push(event.type)
+    });
+    adapter.configure(parsedFixture());
+    adapter.handleSessionEvent({
+        type: 'ACTIVATE', active: { type: 'INLINE', name: 'INL_TEST' }, flavor: null
+    });
+    await adapter.queue;
+    adapter.handleSessionEvent({
+        type: 'ACTIVATE', active: { type: 'DRILL', name: 'DRL_TEST' }, flavor: null
+    });
+    await adapter.queue;
+
+    assert.deepEqual(actions.slice(-3), [
+        'ROBOT_STOP_ACKNOWLEDGED', 'DRILL', 'ROBOT_REPLACE_SENT'
     ]);
 });
 

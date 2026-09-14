@@ -157,6 +157,12 @@ export function describeRobotDiagnostic(event) {
     if (event.type === 'ROBOT_STOP_SENT') {
         return { fatal: false, text: `ROBOT STOP ${event.reason}` };
     }
+    if (event.type === 'ROBOT_STOP_ACKNOWLEDGED') {
+        return { fatal: false, text: 'ROBOT STOP ACKNOWLEDGED' };
+    }
+    if (event.type === 'ROBOT_STOP_ACK_TIMEOUT') {
+        return { fatal: false, text: 'ROBOT STOP ACK TIMEOUT — replacement sent' };
+    }
     if (event.type === 'ROBOT_DONE_FALLBACK') {
         return {
             fatal: false,
