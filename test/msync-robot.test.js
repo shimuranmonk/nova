@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
     ROBOT_DONE_SAFETY_MS,
     ROBOT_PERSISTENT_CYCLES,
+    ROBOT_REPLACEMENT_SETTLE_MS,
     ROBOT_STOP_PACKET,
     MsyncRobotAdapter,
     buildMsyncDrillPacket,
@@ -181,6 +182,33 @@ test('missing robot DONE notification falls back to a timed persistent repeat', 
     timers.at(-1).callback();
     await adapter.queue;
     assert.equal(diagnostics.filter(value => value.type === 'ROBOT_REPLACE_SENT').length, 2);
+});
+
+test('changing an active live drill lets STOP settle before sending its replacement', async () => {
+    const actions = [];
+    const adapter = new MsyncRobotAdapter({
+        send: async packet => actions.push(packet[0] === 0x80 ? 'STOP' : 'DRILL'),
+        subscribeDone: () => () => {},
+        isConnected: () => true,
+        wait: async delay => actions.push(`WAIT:${delay}`),
+        setTimer: () => 1,
+        clearTimer: () => {},
+        now: () => 0
+    });
+    adapter.configure(parsedFixture());
+    adapter.handleSessionEvent({
+        type: 'ACTIVATE', active: { type: 'INLINE', name: 'INL_TEST' }, flavor: null
+    });
+    await adapter.queue;
+    assert.deepEqual(actions, ['STOP', 'DRILL']);
+
+    adapter.handleSessionEvent({
+        type: 'ACTIVATE', active: { type: 'DRILL', name: 'DRL_TEST' }, flavor: null
+    });
+    await adapter.queue;
+    assert.deepEqual(actions, [
+        'STOP', 'DRILL', 'STOP', `WAIT:${ROBOT_REPLACEMENT_SETTLE_MS}`, 'DRILL'
+    ]);
 });
 
 test('DONE fallback follows the editable ROBOT_LEAD including zero', async () => {
