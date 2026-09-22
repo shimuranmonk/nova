@@ -20,6 +20,7 @@ import { MSYNC_PARSER_VERSION } from './msync-parser.js';
 import {
     bleState,
     onRobotDone,
+    onRobotFeedback,
     sendPacket
 } from './bluetooth.js';
 import { MsyncRobotAdapter } from './msync-robot.js';
@@ -187,6 +188,14 @@ function recordSimulationEvent(event) {
 }
 
 export function describeRobotDiagnostic(event) {
+    if (event.type === 'ROBOT_FEEDBACK') {
+        const f = event.feedback;
+        const text = f.type === 'STATE' ? `ROBOT REPORTS ${f.state}`
+            : f.type === 'REJECTED' ? 'ROBOT REPORTS DRILL REJECTED'
+            : f.type === 'ALREADY_STOPPED' ? 'ROBOT REPORTS ALREADY STOPPED'
+            : `ROBOT PROGRESS: shots ${f.totalShots}; ball ${f.ballIndex}; sequence ${f.sequence}; cycle ${f.cycle}`;
+        return { fatal: false, text };
+    }
     if (event.type === 'ROBOT_REPLACE_SENT') {
         return {
             fatal: false,
@@ -624,6 +633,7 @@ async function startMsyncSession(
             robotAdapter = new MsyncRobotAdapter({
                 send: sendPacket,
                 subscribeDone: onRobotDone,
+                subscribeFeedback: onRobotFeedback,
                 isConnected: () => bleState.isConnected,
                 onDiagnostic: recordRobotDiagnostic
             });
