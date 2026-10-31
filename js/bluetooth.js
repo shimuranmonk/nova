@@ -2,6 +2,7 @@ import { SERVICE_UUID, UUID_S, UUID_N, UUID_W, SALT, MSG_DONE } from './constant
 import { log, showToast, MD5, clamp } from './utils.js';
 import { handleDone } from './runner.js';
 import { startSession } from './state.js'; // <--- ADDED IMPORT
+import { decodeRobotFeedback } from './robot-feedback.js';
 
 export const bleState = {
     isConnected: false,
@@ -12,6 +13,12 @@ export const bleState = {
 
 let writeLock = Promise.resolve();
 const robotDoneListeners = new Set();
+const robotFeedbackListeners = new Set();
+
+export function onRobotFeedback(listener) {
+    robotFeedbackListeners.add(listener);
+    return () => robotFeedbackListeners.delete(listener);
+}
 
 export function onRobotDone(listener) {
     robotDoneListeners.add(listener);
@@ -75,8 +82,16 @@ export function sendPacket(data) {
 }
 
 function onNotify(e) {
-    const buf = e.target.value.buffer;
+    const value = e.target.value;
+    const buf = value.buffer.slice(value.byteOffset, value.byteOffset + value.byteLength);
     const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2,'0')).join('');
+    if (bleState.handshakeState === 'ready') {
+        const feedback = decodeRobotFeedback(buf);
+        if (feedback) robotFeedbackListeners.forEach(listener => {
+            try { listener(feedback); }
+            catch (error) { console.error('Robot feedback listener failed:', error); }
+        });
+    }
 
     // Handshake Sequence
     if(bleState.handshakeState === "handshake") {

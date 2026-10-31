@@ -8,6 +8,11 @@ Legacy `.msync` files remain accepted for backward compatibility; other
 extensions produce `INVALID_FILE_EXTENSION`. In every case, the contents must
 still satisfy the complete MSYNC grammar and validation contract.
 
+Files generated with the [Nova S Pro MSYNC Coach](https://l1nq.com/bEyRac0)
+are subject to the same validation rules as manually authored files. Review
+the generated cues and complete **Start Simulation** successfully before using
+**Start Live Robot**.
+
 ## Validation result levels
 
 MSYNC v1 uses two validation result levels:

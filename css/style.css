@@ -549,6 +549,114 @@ input[type="number"]:disabled {
 
 /* === WIDE BUTTON STYLE === */
 
+.voice-ready-control {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface);
+}
+
+.voice-ready-copy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.voice-ready-copy strong {
+    color: var(--text);
+    font-size: 0.76rem;
+    text-transform: uppercase;
+}
+
+.voice-ready-copy span {
+    color: var(--text-light);
+    font-size: 0.72rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#voice-recognition-status {
+    color: var(--text-light);
+    font-size: 0.66rem;
+}
+
+.voice-ready-toggle {
+    min-width: 64px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text-light);
+    font: inherit;
+    font-size: 0.76rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.voice-ready-toggle[aria-checked="true"] {
+    border-color: var(--primary);
+    background: var(--primary-dim);
+    color: var(--primary);
+}
+
+.voice-ready-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.voice-test-toggle {
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text-light);
+    font: inherit;
+    font-size: 0.66rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.voice-test-toggle[aria-pressed="true"] {
+    border-color: var(--primary);
+    background: var(--primary-dim);
+    color: var(--primary);
+}
+
+.voice-test-toggle:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.voice-test-output {
+    display: grid;
+    gap: 3px;
+    margin: -4px 0 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--primary);
+    border-radius: 12px;
+    background: var(--primary-dim);
+    color: var(--text-light);
+    font-size: 0.7rem;
+}
+
+.voice-test-output.hidden {
+    display: none;
+}
+
+.voice-test-output strong {
+    color: var(--primary);
+    font-size: 0.72rem;
+}
+
 .btn-drill {
     width: 100%;
     min-height: 60px;
@@ -579,6 +687,16 @@ input[type="number"]:disabled {
     border-color: var(--primary);
     background: var(--primary-dim);
     color: var(--primary);
+}
+
+.btn-drill.armed {
+    border-color: var(--primary);
+    background: var(--primary-dim);
+    color: var(--primary);
+}
+
+.btn-drill.armed .drill-icon .d-dot {
+    background-color: var(--primary);
 }
 
 .btn-drill:disabled {
@@ -1540,6 +1658,16 @@ input[type="number"]:disabled {
     top: 50%;
     transform: translateY(-50%);
     font-size: 0.8rem;
+}
+
+.btn-drill.armed::after {
+    content: 'ARMED';
+    color: var(--primary);
+    position: static;
+    transform: none;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
 }
 
 

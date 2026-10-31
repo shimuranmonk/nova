@@ -153,7 +153,7 @@ export function buildMsyncDrillPacket(balls, cycles = 1, pack = packRobotBall) {
 }
 
 export class MsyncRobotAdapter {
-    constructor({ send, subscribeDone, isConnected, setTimer = (fn, ms) => setTimeout(fn, ms),
+    constructor({ send, subscribeDone, subscribeFeedback = () => () => {}, isConnected, setTimer = (fn, ms) => setTimeout(fn, ms),
         clearTimer = id => clearTimeout(id), wait = ms => new Promise(resolve => setTimeout(resolve, ms)),
         now = () => performance.now(), onDiagnostic = () => {} }) {
         this.send = send;
@@ -174,6 +174,9 @@ export class MsyncRobotAdapter {
         this.stopAckResolve = null;
         this.queue = Promise.resolve();
         this.unsubscribeDone = subscribeDone(() => this.handleDone());
+        this.unsubscribeFeedback = subscribeFeedback(feedback => {
+            this.onDiagnostic({ type: 'ROBOT_FEEDBACK', feedback });
+        });
         this.cyclePauseMs = 1000;
         this.robotLeadMs = 1300;
     }
@@ -344,6 +347,7 @@ export class MsyncRobotAdapter {
     }
 
     async destroy() {
+        this.unsubscribeFeedback?.();
         await this.stopOnly('DESTROY');
         this.unsubscribeDone?.();
     }
