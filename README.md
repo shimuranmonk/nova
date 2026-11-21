@@ -89,7 +89,7 @@ used only in the MSYNC tab.
 
 #### Create an MSYNC File Automatically
 
-Use the [Nova S Pro MSYNC Coach](https://l1nq.com/bEyRac0)
+Use the [Nova S Pro MSYNC Coach](https://www.google.com)
 to create an MSYNC file for Nova Drill Control PLUS. Upload an MP3 file to the
 coach and it will analyze the audio and generate timed cues intended to
 synchronize Nova S Pro drills with the selected music.
